@@ -1,6 +1,9 @@
 #include "raylib.h"
 #include "math.h"
 #include "stdio.h"
+#include "chess.h"
+
+#define COORD_TO_INDEX(x, y, row_n) (x + (y * row_n))
 
 enum SIDES {
   TOP_SIDE = 0,
@@ -16,12 +19,70 @@ enum CONTROL_AXES {
   RIGHT_TRIGGER = 5
 };
 
+static int startingPieces[16] = {
+    PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // Second row
+    ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // First row
+};
+
+static Texture2D pieceTextures[6]; // 6 piece types
+
 const int NINTENDO_CONTROLLER = 1;
 
+int
+getCoord(int input, int n) {
+  // Translate coordinates
+  int half = n / 2;
+  return half - input;
+}
+
 struct ChessPieces {
-  Vector3 *positions;
-  char is_dead[16];
+  Vector3 *grid_positions;
+  Vector2 *chess_positions;
+  char *is_dead;
+  int *chess_types;
 };
+
+struct ChessTypes {
+  int *chess_types;
+  Texture2D *textures;
+};
+
+static void
+printVec2(Vector2 vec) {
+  printf("x = %f, y = %f\n", vec.x, vec.y);
+}
+
+static void
+printVec3(Vector3 vec) {
+  printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
+}
+
+static Vector3 grid_positions[64];
+
+void
+generatePositions(int pieceSize) {
+  int piece = 0;
+  for (float i = -3; i <= 4; i++) {
+    for (float j = -3; j <= 4; j++) {
+      Vector3 position = calculateMove(i, j, pieceSize);
+      // there are always 16 pieces per player
+      if (piece < 64) {
+        grid_positions[piece] = position;
+      }
+      piece++;
+    }
+  }
+}
+
+static Vector3
+calculateMove(int col, int row, int size) {
+  // Given a column and row, and a tile size
+  // calculate a board position
+  Vector3 position = { (size*row) - (size/2.0),
+                       1.0f,
+                       (size*col) - (size/2.0)}; // 4 = half the grid from center
+  return position;
+}
 
 struct ChessPieces
 setPieces(struct ChessPieces pieces, int size, unsigned int side) {
@@ -41,12 +102,11 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
 
   for (float i = -3; i <= 4; i++) {
     for (float j = -3; j <= 4; j++) {
-      Vector3 position = { (size*i) - (size/2.0),
-                           1.5f,
-                           (size*j) - (size/2.0)}; // 4 = half the grid from center
+      Vector3 position = calculateMove(i, j, size);
       // there are always 16 pieces per player
       if (piece >= start && piece < end) { // there must be a nicer way of checking this
-        pieces.positions[piece % 16] = position;
+        pieces.grid_positions[piece % 16] = position; // get rid of this and just do a lookup now?
+        pieces.chess_positions[piece % 16] = (Vector2){i, j};
         pieces.is_dead[piece % 16] = 0;
       }
       piece++;
@@ -62,8 +122,12 @@ clamp(int d, int min, int max) {
 }
 
 
-static Vector3 whitePositions[16];
-static Vector3 blackPositions[16];
+static Vector3 whiteGridPositions[16];
+static Vector3 blackGridPositions[16];
+static Vector2 whiteChessPositions[16];
+static Vector2 blackChessPositions[16];
+static char whitePiecesDead[16];
+static char blackPiecesDead[16];
 
 int
 main(void)
@@ -84,16 +148,66 @@ main(void)
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
     Texture2D pawn = LoadTexture("resources/pawn.png");
+    // Load all textures
+    // This is VERY SLOW, how can I speed it up?
+    for (int i = 0; i < 6; i++) {
+      switch (i) {
+        case PAWN:
+          pieceTextures[PAWN] = LoadTexture("resources/pawn.png");
+          break;
+        case KNIGHT:
+          pieceTextures[KNIGHT] = LoadTexture("resources/knight.png");
+          break;
+        case BISHOP:
+          pieceTextures[BISHOP] = LoadTexture("resources/bishop.png");
+          break;
+        case ROOK:
+          pieceTextures[ROOK] = LoadTexture("resources/rook.png");
+          break;
+        case QUEEN:
+          pieceTextures[QUEEN] = LoadTexture("resources/queen.png");
+          break;
+        case KING:
+          pieceTextures[KING] = LoadTexture("resources/king.png");
+          break;
+      }
+    }
+
     DisableCursor();
 
     SetTargetFPS(60);
-    float cubeSize = 5.0f;
+    float pieceSize = 5.0f;
 
-    struct ChessPieces whitePieces = {.positions = &whitePositions[0]};
-    struct ChessPieces blackPieces = {.positions = &blackPositions[0]};
+    struct ChessPieces whitePieces = {
+      .grid_positions = &whiteGridPositions[0],
+      .chess_positions = &whiteChessPositions[0],
+      .is_dead = &whitePiecesDead[0],
+      .chess_types = &startingPieces[0]
+    };
 
-    setPieces(whitePieces, cubeSize, TOP_SIDE);
-    setPieces(blackPieces, cubeSize, BOTTOM_SIDE);
+    struct ChessPieces blackPieces = {
+      .grid_positions = &blackGridPositions[0],
+      .chess_positions = &blackChessPositions[0],
+      .is_dead = &blackPiecesDead[0],
+      .chess_types = &startingPieces[0]
+    };
+
+    // Use to store data about different piece types
+    struct ChessTypes chessTypes = {.chess_types = &startingPieces[0], .textures = &pieceTextures[0] };
+
+    setPieces(whitePieces, pieceSize, TOP_SIDE);
+    setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
+
+    //printVec2(whitePieces.chess_positions[3]);
+
+    // Need to have inverted movements for one side vs the other
+    //blackPieces.chess_positions[0].x = getCoord(2, 8);
+    //blackPieces.chess_positions[0].y = getCoord(0, 8);
+    //blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
+
+    //for (int i = 0; i < 64; i++) {
+      //printVec3(grid_positions[i]);
+    //}
 
     while (!WindowShouldClose()) {
         UpdateCamera(&camera, CAMERA_FREE);
@@ -131,13 +245,17 @@ main(void)
                 }
 
                 for (int i = 0; i < 16; i++) {
-                  Vector3 cubePosition = whitePieces.positions[i];
-                  DrawBillboard(camera, pawn, cubePosition, 2.0f, WHITE);
+                  Vector3 gridPos = whitePieces.grid_positions[i];
+                  int pieceType = whitePieces.chess_types[i];
+                  Texture2D texture = chessTypes.textures[pieceType];
+                  DrawBillboard(camera, texture, gridPos, 2.0f, WHITE);
                 }
 
                 for (int i = 0; i < 16; i++) {
-                  Vector3 cubePosition = blackPieces.positions[i];
-                  DrawBillboard(camera, pawn, cubePosition, 2.0f, BLACK);
+                  Vector3 gridPos = blackPieces.grid_positions[i];
+                  int pieceType = whitePieces.chess_types[i];
+                  Texture2D texture = chessTypes.textures[pieceType];
+                  DrawBillboard(camera, texture, gridPos, 2.0f, BLACK);
                 }
 
 
