@@ -4,16 +4,17 @@
 #include "chess.h"
 #include "camera/rlTPCamera.h"
 
+const int NINTENDO_CONTROLLER = 1;
+
 static int startingPieces[16] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // Second row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // First row
 };
 
+// allocate buffers for game data
 static Texture2D pieceTextures[6]; // 6 piece types
 static Model pieceModels[6]; // 6 piece types
 static float pieceScalingFactors[6] = {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
-const int NINTENDO_CONTROLLER = 1;
-
 static Vector3 whiteGridPositions[16];
 static Vector3 blackGridPositions[16];
 static Vector2 whiteChessPositions[16];
