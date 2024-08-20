@@ -25,6 +25,17 @@ static char blackPiecesDead[16];
 
 static Vector3 grid_positions[64];
 
+void
+loadAssets() {
+    pieceModels[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
+    pieceModels[KNIGHT] = LoadModel("resources/models/chess_pieces_models/knight.glb");
+    pieceModels[BISHOP] = LoadModel("resources/models/chess_pieces_models/bishop.glb");
+    pieceModels[ROOK] = LoadModel("resources/models/chess_pieces_models/rook.glb");
+    pieceModels[QUEEN] = LoadModel("resources/models/chess_pieces_models/queen.glb");
+    pieceModels[KING] = LoadModel("resources/models/chess_pieces_models/king.glb");
+    return;
+}
+
 int
 getCoord(int input, int n) {
   // Translate coordinates
@@ -118,29 +129,7 @@ main(void)
     rlTPCameraInit(&orbitCam, 45, (Vector3){ 1, 0 ,0 });
     orbitCam.ViewAngles.y = -15 * DEG2RAD;
 
-    // Load all models
-    for (int i = 0; i < 6; i++) {
-      switch (i) {
-        case PAWN:
-          pieceModels[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
-          break;
-        case KNIGHT:
-          pieceModels[KNIGHT] = LoadModel("resources/models/chess_pieces_models/knight.glb");
-          break;
-        case BISHOP:
-          pieceModels[BISHOP] = LoadModel("resources/models/chess_pieces_models/bishop.glb");
-          break;
-        case ROOK:
-          pieceModels[ROOK] = LoadModel("resources/models/chess_pieces_models/rook.glb");
-          break;
-        case QUEEN:
-          pieceModels[QUEEN] = LoadModel("resources/models/chess_pieces_models/queen.glb");
-          break;
-        case KING:
-          pieceModels[KING] = LoadModel("resources/models/chess_pieces_models/king.glb");
-          break;
-      }
-    }
+    loadAssets();
 
     DisableCursor();
 
