@@ -158,14 +158,6 @@ main(void)
     rlTPCameraInit(&orbitCam, 45, (Vector3){ 1, 0 ,0 });
     orbitCam.ViewAngles.y = -15 * DEG2RAD;
 
-    // Define the camera to look into our 3d world
-    //Camera3D camera = { 0 };
-    //camera.position = (Vector3){ 10.0f, 10.0f, 10.0f }; // Camera position
-    //camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // Camera looking at point
-    //camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-    //camera.fovy = 45.0f;                                // Camera field-of-view Y
-    //camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
-
     // Load all models
     for (int i = 0; i < 6; i++) {
       switch (i) {
@@ -231,18 +223,12 @@ main(void)
     int active_chess_piece = 0;
     int active_player = BLACK_PLAYER;
 
-    //printVec2(whitePieces.chess_positions[3]);
-
     // Need to have inverted movements for one side vs the other
     blackPieces.chess_positions[0].x = getCoord(2, 8);
     blackPieces.chess_positions[0].y = getCoord(0, 8);
     blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
 
     float time_since_move = 0;
-
-    //for (int i = 0; i < 64; i++) {
-      //printVec3(grid_positions[i]);
-    //}
 
     while (!WindowShouldClose()) {
         rlTPCameraUpdate(&orbitCam);
@@ -254,15 +240,6 @@ main(void)
             ClearBackground(RAYWHITE);
 
             rlTPCameraBeginMode3D(&orbitCam);
-
-                //printf("gamepad axis count = %d\n", GetGamepadAxisCount(NINTENDO_CONTROLLER));
-                //printf("gamepad name = %s\n", GetGamepadName(NINTENDO_CONTROLLER));
-
-                //int axis_count = GetGamepadAxisCount(NINTENDO_CONTROLLER);
-
-                //for (int axis = 0; axis < axis_count; axis++) {
-                  //printf("axis %d = %f\n", axis, GetGamepadAxisMovement(NINTENDO_CONTROLLER, axis));
-                //}
 
                 if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
                   // FIXME only select live ones?
