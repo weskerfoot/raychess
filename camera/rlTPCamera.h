@@ -49,7 +49,7 @@ typedef enum
     TURN_DOWN,
     SPRINT,
     LAST_CONTROL
-}rlTPCameraControls;
+} rlTPCameraControls;
 
 typedef struct
 {
