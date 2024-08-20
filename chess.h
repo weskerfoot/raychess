@@ -1,5 +1,24 @@
 static Vector3 calculateMove(int, int, int);
 
+enum PLAYER_TYPES {
+  WHITE_PLAYER = 0,
+  BLACK_PLAYER = 1
+};
+
+enum SIDES {
+  TOP_SIDE = 0,
+  BOTTOM_SIDE = 1
+};
+
+enum CONTROL_AXES {
+  LEFT_STICK_LEFT_RIGHT = 0,
+  LEFT_STICK_UP_DOWN = 1,
+  RIGHT_STICK_LEFT_RIGHT = 2,
+  RIGHT_STICK_UP_DOWN = 3,
+  LEFT_TRIGGER = 4,
+  RIGHT_TRIGGER = 5
+};
+
 enum ChessPiece {
     PAWN = 0,
     KNIGHT = 1,
@@ -7,6 +26,26 @@ enum ChessPiece {
     ROOK = 3,
     QUEEN = 4,
     KING = 5
+};
+
+struct ChessPieces {
+  Vector3 *grid_positions;
+  Vector2 *chess_positions;
+  int *chess_type;
+  char *is_dead;
+};
+
+struct ChessTypes {
+  int *chess_type;
+  Texture2D *textures;
+  Model *models;
+  float *scaling_factors;
+};
+
+struct Players {
+  int *score;
+  int *player_type;
+  struct ChessPieces *pieces;
 };
 
 // Pawn move offsets (including the initial two-square move)

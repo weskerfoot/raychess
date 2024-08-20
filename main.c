@@ -4,25 +4,6 @@
 #include "chess.h"
 #include "camera/rlTPCamera.h"
 
-enum PLAYER_TYPES {
-  WHITE_PLAYER = 0,
-  BLACK_PLAYER = 1
-};
-
-enum SIDES {
-  TOP_SIDE = 0,
-  BOTTOM_SIDE = 1
-};
-
-enum CONTROL_AXES {
-  LEFT_STICK_LEFT_RIGHT = 0,
-  LEFT_STICK_UP_DOWN = 1,
-  RIGHT_STICK_LEFT_RIGHT = 2,
-  RIGHT_STICK_UP_DOWN = 3,
-  LEFT_TRIGGER = 4,
-  RIGHT_TRIGGER = 5
-};
-
 static int startingPieces[16] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // Second row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // First row
@@ -40,26 +21,6 @@ getCoord(int input, int n) {
   int half = n / 2;
   return half - input;
 }
-
-struct ChessPieces {
-  Vector3 *grid_positions;
-  Vector2 *chess_positions;
-  int *chess_type;
-  char *is_dead;
-};
-
-struct ChessTypes {
-  int *chess_type;
-  Texture2D *textures;
-  Model *models;
-  float *scaling_factors;
-};
-
-struct Players {
-  int *score;
-  int *player_type;
-  struct ChessPieces *pieces;
-};
 
 static void
 printVec2(Vector2 vec) {
@@ -278,8 +239,6 @@ main(void)
 
                 time_since_move += GetFrameTime();
 
-                struct ChessPieces activePieces = players.pieces[active_player];
-
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = whitePieces.grid_positions[i];
                   int pieceType = whitePieces.chess_type[i];
@@ -296,9 +255,11 @@ main(void)
                   DrawModel(model, gridPos, scaling_factor, BLACK);
                 }
 
+                struct ChessPieces activePieces = players.pieces[active_player];
+
                 Vector3 highlight_pos = activePieces.grid_positions[active_chess_piece];
                 highlight_pos.y = 0;
-                DrawCube(highlight_pos, 5, 0.1, 5, RED);
+                DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
                 DrawGrid(8, 5.0f);
             rlTPCameraEndMode3D();
