@@ -5,6 +5,11 @@
 
 #define COORD_TO_INDEX(x, y, row_n) (x + (y * row_n))
 
+enum PLAYER_TYPES {
+  WHITE_PLAYER = 0,
+  BLACK_PLAYER = 1
+};
+
 enum SIDES {
   TOP_SIDE = 0,
   BOTTOM_SIDE = 1
@@ -35,15 +40,20 @@ getCoord(int input, int n) {
   return half - input;
 }
 
+struct Players {
+  int *score;
+  int *player_type;
+};
+
 struct ChessPieces {
   Vector3 *grid_positions;
   Vector2 *chess_positions;
+  int *chess_type;
   char *is_dead;
-  int *chess_types;
 };
 
 struct ChessTypes {
-  int *chess_types;
+  int *chess_type;
   Texture2D *textures;
 };
 
@@ -147,7 +157,6 @@ main(void)
     camera.fovy = 45.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
-    Texture2D pawn = LoadTexture("resources/pawn.png");
     // Load all textures
     // This is VERY SLOW, how can I speed it up?
     for (int i = 0; i < 6; i++) {
@@ -182,28 +191,41 @@ main(void)
       .grid_positions = &whiteGridPositions[0],
       .chess_positions = &whiteChessPositions[0],
       .is_dead = &whitePiecesDead[0],
-      .chess_types = &startingPieces[0]
+      .chess_type = &startingPieces[0]
     };
 
     struct ChessPieces blackPieces = {
       .grid_positions = &blackGridPositions[0],
       .chess_positions = &blackChessPositions[0],
       .is_dead = &blackPiecesDead[0],
-      .chess_types = &startingPieces[0]
+      .chess_type = &startingPieces[0]
+    };
+
+    int score[2] = {0, 0};
+    int active_players[2] = {WHITE_PLAYER, BLACK_PLAYER};
+
+    struct Players players = {
+      .score = &score[0],
+      .player_type = &active_players[0]
     };
 
     // Use to store data about different piece types
-    struct ChessTypes chessTypes = {.chess_types = &startingPieces[0], .textures = &pieceTextures[0] };
+    struct ChessTypes chessTypes = {.chess_type = &startingPieces[0], .textures = &pieceTextures[0] };
 
     setPieces(whitePieces, pieceSize, TOP_SIDE);
     setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
 
+    int active_chess_piece = 0;
+    int active_player = WHITE_PLAYER;
+
     //printVec2(whitePieces.chess_positions[3]);
 
     // Need to have inverted movements for one side vs the other
-    //blackPieces.chess_positions[0].x = getCoord(2, 8);
-    //blackPieces.chess_positions[0].y = getCoord(0, 8);
-    //blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
+    blackPieces.chess_positions[0].x = getCoord(2, 8);
+    blackPieces.chess_positions[0].y = getCoord(0, 8);
+    blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
+
+    float time_since_move = 0;
 
     //for (int i = 0; i < 64; i++) {
       //printVec3(grid_positions[i]);
@@ -228,36 +250,51 @@ main(void)
                   //printf("axis %d = %f\n", axis, GetGamepadAxisMovement(NINTENDO_CONTROLLER, axis));
                 //}
 
+                // camera.position.y = clamp(camera.position.y - 1, -100, 100);
+
+                /*
                 if (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.9) {
-                  camera.position.y = clamp(camera.position.y - 1, -100, 100);
                 }
-
                 if (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) {
-                  camera.position.y = clamp(camera.position.y + 1, -100, 100);
+                }
+                */
+
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.9) && time_since_move >= 0.2) {
+                  printf("left\n");
+                  active_chess_piece = clamp(active_chess_piece - 1, 0, 16);
+                  time_since_move = 0;
                 }
 
-                if (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.9) {
-                  camera.position.x = clamp(camera.position.x - 1, 0, 100);
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2) {
+                  printf("right\n");
+                  active_chess_piece = clamp(active_chess_piece + 1, 0, 16);
+                  time_since_move = 0;
                 }
 
-                if (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) {
-                  camera.position.x = clamp(camera.position.x + 1, 0, 100);
-                }
+
+                time_since_move += GetFrameTime();
 
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = whitePieces.grid_positions[i];
-                  int pieceType = whitePieces.chess_types[i];
+                  int pieceType = whitePieces.chess_type[i];
                   Texture2D texture = chessTypes.textures[pieceType];
                   DrawBillboard(camera, texture, gridPos, 2.0f, WHITE);
                 }
 
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = blackPieces.grid_positions[i];
-                  int pieceType = whitePieces.chess_types[i];
+                  int pieceType = whitePieces.chess_type[i];
                   Texture2D texture = chessTypes.textures[pieceType];
                   DrawBillboard(camera, texture, gridPos, 2.0f, BLACK);
                 }
 
+                if (active_player == WHITE_PLAYER) {
+                  DrawCube(whitePieces.grid_positions[active_chess_piece], 2, 2, 2, RED);
+                }
+
+                if (active_player == BLACK_PLAYER) {
+                  DrawCube(blackPieces.grid_positions[active_chess_piece], 2, 2, 2, RED);
+                }
 
                 DrawGrid(8, 5.0f);
             EndMode3D();
