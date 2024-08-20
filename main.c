@@ -41,11 +41,6 @@ getCoord(int input, int n) {
   return half - input;
 }
 
-struct Players {
-  int *score;
-  int *player_type;
-};
-
 struct ChessPieces {
   Vector3 *grid_positions;
   Vector2 *chess_positions;
@@ -58,6 +53,12 @@ struct ChessTypes {
   Texture2D *textures;
   Model *models;
   float *scaling_factors;
+};
+
+struct Players {
+  int *score;
+  int *player_type;
+  struct ChessPieces *pieces;
 };
 
 static void
@@ -201,10 +202,12 @@ main(void)
 
     int score[2] = {0, 0};
     int active_players[2] = {WHITE_PLAYER, BLACK_PLAYER};
+    struct ChessPieces pieces[2] = {whitePieces, blackPieces};
 
     struct Players players = {
       .score = &score[0],
-      .player_type = &active_players[0]
+      .player_type = &active_players[0],
+      .pieces = &pieces[0]
     };
 
     // Use to store data about different piece types
@@ -219,12 +222,12 @@ main(void)
     setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
 
     int active_chess_piece = 0;
-    int active_player = BLACK_PLAYER;
+    int active_player = WHITE_PLAYER;
 
     // Need to have inverted movements for one side vs the other
-    blackPieces.chess_positions[0].x = getCoord(2, 8);
-    blackPieces.chess_positions[0].y = getCoord(0, 8);
-    blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
+    //blackPieces.chess_positions[0].x = getCoord(2, 8);
+    //blackPieces.chess_positions[0].y = getCoord(0, 8);
+    //blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
 
     float time_since_move = 0;
 
@@ -275,6 +278,8 @@ main(void)
 
                 time_since_move += GetFrameTime();
 
+                struct ChessPieces activePieces = players.pieces[active_player];
+
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = whitePieces.grid_positions[i];
                   int pieceType = whitePieces.chess_type[i];
@@ -285,23 +290,15 @@ main(void)
 
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = blackPieces.grid_positions[i];
-                  int pieceType = whitePieces.chess_type[i];
+                  int pieceType = blackPieces.chess_type[i];
                   Model model = chessTypes.models[pieceType];
                   float scaling_factor = chessTypes.scaling_factors[pieceType];
                   DrawModel(model, gridPos, scaling_factor, BLACK);
                 }
 
-                if (active_player == WHITE_PLAYER) {
-                  Vector3 highlight_pos = whitePieces.grid_positions[active_chess_piece];
-                  highlight_pos.y = 0;
-                  DrawCube(highlight_pos, 5, 0.1, 5, RED);
-                }
-
-                if (active_player == BLACK_PLAYER) {
-                  Vector3 highlight_pos = blackPieces.grid_positions[active_chess_piece];
-                  highlight_pos.y = 0;
-                  DrawCube(highlight_pos, 5, 0.1, 5, RED);
-                }
+                Vector3 highlight_pos = activePieces.grid_positions[active_chess_piece];
+                highlight_pos.y = 0;
+                DrawCube(highlight_pos, 5, 0.1, 5, RED);
 
                 DrawGrid(8, 5.0f);
             rlTPCameraEndMode3D();
