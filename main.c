@@ -12,8 +12,15 @@ static int startingPieces[16] = {
 static Texture2D pieceTextures[6]; // 6 piece types
 static Model pieceModels[6]; // 6 piece types
 static float pieceScalingFactors[6] = {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
-
 const int NINTENDO_CONTROLLER = 1;
+
+static Vector3 whiteGridPositions[16];
+static Vector3 blackGridPositions[16];
+static Vector2 whiteChessPositions[16];
+static Vector2 blackChessPositions[16];
+static char whitePiecesDead[16];
+static char blackPiecesDead[16];
+static Vector3 grid_positions[64];
 
 int
 getCoord(int input, int n) {
@@ -31,8 +38,6 @@ static void
 printVec3(Vector3 vec) {
   printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
 }
-
-static Vector3 grid_positions[64];
 
 void
 generatePositions(int pieceSize) {
@@ -95,14 +100,6 @@ clamp(int d, int min, int max) {
   const int t = d < min ? min : d;
   return t > max ? max : t;
 }
-
-
-static Vector3 whiteGridPositions[16];
-static Vector3 blackGridPositions[16];
-static Vector2 whiteChessPositions[16];
-static Vector2 blackChessPositions[16];
-static char whitePiecesDead[16];
-static char blackPiecesDead[16];
 
 int
 main(void)
