@@ -2,6 +2,7 @@
 #include "math.h"
 #include "stdio.h"
 #include "chess.h"
+#include "camera/rlTPCamera.h"
 
 #define COORD_TO_INDEX(x, y, row_n) (x + (y * row_n))
 
@@ -30,6 +31,8 @@ static int startingPieces[16] = {
 };
 
 static Texture2D pieceTextures[6]; // 6 piece types
+static Model pieceModels[6]; // 6 piece types
+static float pieceScalingFactors[6] = {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
 
 const int NINTENDO_CONTROLLER = 1;
 
@@ -55,6 +58,8 @@ struct ChessPieces {
 struct ChessTypes {
   int *chess_type;
   Texture2D *textures;
+  Model *models;
+  float *scaling_factors;
 };
 
 static void
@@ -89,7 +94,7 @@ calculateMove(int col, int row, int size) {
   // Given a column and row, and a tile size
   // calculate a board position
   Vector3 position = { (size*row) - (size/2.0),
-                       1.0f,
+                       0.0f,
                        (size*col) - (size/2.0)}; // 4 = half the grid from center
   return position;
 }
@@ -149,35 +154,38 @@ main(void)
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 3d camera free");
 
-    // Define the camera to look into our 3d world
-    Camera3D camera = { 0 };
-    camera.position = (Vector3){ 10.0f, 10.0f, 10.0f }; // Camera position
-    camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // Camera looking at point
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-    camera.fovy = 45.0f;                                // Camera field-of-view Y
-    camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
+    rlTPCamera orbitCam;
+    rlTPCameraInit(&orbitCam, 45, (Vector3){ 1, 0 ,0 });
+    orbitCam.ViewAngles.y = -15 * DEG2RAD;
 
-    // Load all textures
-    // This is VERY SLOW, how can I speed it up?
+    // Define the camera to look into our 3d world
+    //Camera3D camera = { 0 };
+    //camera.position = (Vector3){ 10.0f, 10.0f, 10.0f }; // Camera position
+    //camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // Camera looking at point
+    //camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+    //camera.fovy = 45.0f;                                // Camera field-of-view Y
+    //camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
+
+    // Load all models
     for (int i = 0; i < 6; i++) {
       switch (i) {
         case PAWN:
-          pieceTextures[PAWN] = LoadTexture("resources/pawn.png");
+          pieceModels[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
           break;
         case KNIGHT:
-          pieceTextures[KNIGHT] = LoadTexture("resources/knight.png");
+          pieceModels[KNIGHT] = LoadModel("resources/models/chess_pieces_models/knight.glb");
           break;
         case BISHOP:
-          pieceTextures[BISHOP] = LoadTexture("resources/bishop.png");
+          pieceModels[BISHOP] = LoadModel("resources/models/chess_pieces_models/bishop.glb");
           break;
         case ROOK:
-          pieceTextures[ROOK] = LoadTexture("resources/rook.png");
+          pieceModels[ROOK] = LoadModel("resources/models/chess_pieces_models/rook.glb");
           break;
         case QUEEN:
-          pieceTextures[QUEEN] = LoadTexture("resources/queen.png");
+          pieceModels[QUEEN] = LoadModel("resources/models/chess_pieces_models/queen.glb");
           break;
         case KING:
-          pieceTextures[KING] = LoadTexture("resources/king.png");
+          pieceModels[KING] = LoadModel("resources/models/chess_pieces_models/king.glb");
           break;
       }
     }
@@ -210,13 +218,18 @@ main(void)
     };
 
     // Use to store data about different piece types
-    struct ChessTypes chessTypes = {.chess_type = &startingPieces[0], .textures = &pieceTextures[0] };
+    struct ChessTypes chessTypes = {
+      .chess_type = &startingPieces[0],
+      .textures = &pieceTextures[0],
+      .models = &pieceModels[0],
+      .scaling_factors = &pieceScalingFactors[0]
+    };
 
     setPieces(whitePieces, pieceSize, TOP_SIDE);
     setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
 
     int active_chess_piece = 0;
-    int active_player = WHITE_PLAYER;
+    int active_player = BLACK_PLAYER;
 
     //printVec2(whitePieces.chess_positions[3]);
 
@@ -232,72 +245,93 @@ main(void)
     //}
 
     while (!WindowShouldClose()) {
-        UpdateCamera(&camera, CAMERA_FREE);
+        rlTPCameraUpdate(&orbitCam);
 
-        if (IsKeyPressed('Z')) camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
         BeginDrawing();
+
+
 
             ClearBackground(RAYWHITE);
 
-            BeginMode3D(camera);
+            rlTPCameraBeginMode3D(&orbitCam);
 
                 //printf("gamepad axis count = %d\n", GetGamepadAxisCount(NINTENDO_CONTROLLER));
                 //printf("gamepad name = %s\n", GetGamepadName(NINTENDO_CONTROLLER));
 
-                int axis_count = GetGamepadAxisCount(NINTENDO_CONTROLLER);
+                //int axis_count = GetGamepadAxisCount(NINTENDO_CONTROLLER);
 
                 //for (int axis = 0; axis < axis_count; axis++) {
                   //printf("axis %d = %f\n", axis, GetGamepadAxisMovement(NINTENDO_CONTROLLER, axis));
                 //}
 
-                // camera.position.y = clamp(camera.position.y - 1, -100, 100);
-
-                /*
-                if (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.9) {
-                }
-                if (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) {
-                }
-                */
-
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.9) && time_since_move >= 0.2) {
-                  printf("left\n");
-                  active_chess_piece = clamp(active_chess_piece - 1, 0, 16);
-                  time_since_move = 0;
-                }
-
                 if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2) {
-                  printf("right\n");
-                  active_chess_piece = clamp(active_chess_piece + 1, 0, 16);
+                  // FIXME only select live ones?
+                  active_chess_piece = clamp(active_chess_piece - 1 % 16, 0, 15);
                   time_since_move = 0;
                 }
 
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2) {
+                  active_chess_piece = clamp(active_chess_piece + 1 % 16, 0, 15);
+                  time_since_move = 0;
+                }
+
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2) {
+                  // FIXME only select live ones?
+                  active_chess_piece = clamp(active_chess_piece - 8 % 16, 0, 15);
+                  time_since_move = 0;
+                }
+
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95) && time_since_move >= 0.2) {
+                  active_chess_piece = clamp(active_chess_piece + 8 % 16, 0, 15);
+                  time_since_move = 0;
+                }
+
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95) && time_since_move >= 0.2) {
+                  active_chess_piece = clamp(active_chess_piece + 8 % 16, 0, 15);
+                  time_since_move = 0;
+                }
+
+                // Camera controls
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2) {
+                  time_since_move = 0;
+                }
+
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2) {
+                  time_since_move = 0;
+                }
 
                 time_since_move += GetFrameTime();
 
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = whitePieces.grid_positions[i];
                   int pieceType = whitePieces.chess_type[i];
-                  Texture2D texture = chessTypes.textures[pieceType];
-                  DrawBillboard(camera, texture, gridPos, 2.0f, WHITE);
+                  Model model = chessTypes.models[pieceType];
+                  float scaling_factor = chessTypes.scaling_factors[pieceType];
+                  DrawModel(model, gridPos, scaling_factor, WHITE);
                 }
 
                 for (int i = 0; i < 16; i++) {
                   Vector3 gridPos = blackPieces.grid_positions[i];
                   int pieceType = whitePieces.chess_type[i];
-                  Texture2D texture = chessTypes.textures[pieceType];
-                  DrawBillboard(camera, texture, gridPos, 2.0f, BLACK);
+                  Model model = chessTypes.models[pieceType];
+                  float scaling_factor = chessTypes.scaling_factors[pieceType];
+                  DrawModel(model, gridPos, scaling_factor, BLACK);
                 }
 
                 if (active_player == WHITE_PLAYER) {
-                  DrawCube(whitePieces.grid_positions[active_chess_piece], 2, 2, 2, RED);
+                  Vector3 highlight_pos = whitePieces.grid_positions[active_chess_piece];
+                  highlight_pos.y = 0;
+                  DrawCube(highlight_pos, 5, 0.1, 5, RED);
                 }
 
                 if (active_player == BLACK_PLAYER) {
-                  DrawCube(blackPieces.grid_positions[active_chess_piece], 2, 2, 2, RED);
+                  Vector3 highlight_pos = blackPieces.grid_positions[active_chess_piece];
+                  highlight_pos.y = 0;
+                  DrawCube(highlight_pos, 5, 0.1, 5, RED);
                 }
 
                 DrawGrid(8, 5.0f);
-            EndMode3D();
+            rlTPCameraEndMode3D();
 
             DrawRectangle( 10, 10, 320, 93, Fade(SKYBLUE, 0.5f));
             DrawRectangleLines( 10, 10, 320, 93, BLUE);

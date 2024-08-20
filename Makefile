@@ -11,7 +11,7 @@ RAYLIB_FLAGS = $(shell pkg-config --cflags --libs raylib)
 TARGET = c_chess
 
 # Source files
-SRC = main.c
+SRC = main.c camera/rlTPCamera.c
 
 # Default rule
 all: $(TARGET)
