@@ -12,15 +12,17 @@ static int startingPieces[16] = {
 };
 
 // allocate buffers for game data
-static Texture2D pieceTextures[6]; // 6 piece types
-static Model pieceModels[6]; // 6 piece types
+static Texture2D pieceTextures[6];
+static Model pieceModels[6];
 static float pieceScalingFactors[6] = {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
+
 static Vector3 whiteGridPositions[16];
 static Vector3 blackGridPositions[16];
 static Vector2 whiteChessPositions[16];
 static Vector2 blackChessPositions[16];
 static char whitePiecesDead[16];
 static char blackPiecesDead[16];
+
 static Vector3 grid_positions[64];
 
 int
