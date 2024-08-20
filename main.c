@@ -264,40 +264,40 @@ main(void)
                   //printf("axis %d = %f\n", axis, GetGamepadAxisMovement(NINTENDO_CONTROLLER, axis));
                 //}
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2) {
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
                   // FIXME only select live ones?
                   active_chess_piece = clamp(active_chess_piece - 1 % 16, 0, 15);
-                  time_since_move = 0;
+                  time_since_move = 0.0f;
                 }
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2) {
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2f) {
                   active_chess_piece = clamp(active_chess_piece + 1 % 16, 0, 15);
-                  time_since_move = 0;
+                  time_since_move = 0.0f;
                 }
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2) {
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2f) {
                   // FIXME only select live ones?
                   active_chess_piece = clamp(active_chess_piece - 8 % 16, 0, 15);
-                  time_since_move = 0;
+                  time_since_move = 0.0f;
                 }
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95) && time_since_move >= 0.2) {
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
                   active_chess_piece = clamp(active_chess_piece + 8 % 16, 0, 15);
-                  time_since_move = 0;
+                  time_since_move = 0.0f;
                 }
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95) && time_since_move >= 0.2) {
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
                   active_chess_piece = clamp(active_chess_piece + 8 % 16, 0, 15);
-                  time_since_move = 0;
+                  time_since_move = 0.0f;
                 }
 
                 // Camera controls
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2) {
-                  time_since_move = 0;
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) < 0.0f) && time_since_move >= 0.2f) {
+                  time_since_move = 0.0f;
                 }
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2) {
-                  time_since_move = 0;
+                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) > 0.95f) && time_since_move >= 0.2f) {
+                  time_since_move = 0.0f;
                 }
 
                 time_since_move += GetFrameTime();
