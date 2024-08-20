@@ -4,8 +4,6 @@
 #include "chess.h"
 #include "camera/rlTPCamera.h"
 
-#define COORD_TO_INDEX(x, y, row_n) (x + (y * row_n))
-
 enum PLAYER_TYPES {
   WHITE_PLAYER = 0,
   BLACK_PLAYER = 1
@@ -234,8 +232,6 @@ main(void)
         rlTPCameraUpdate(&orbitCam);
 
         BeginDrawing();
-
-
 
             ClearBackground(RAYWHITE);
 
