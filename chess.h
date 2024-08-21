@@ -43,21 +43,14 @@ struct ChessTypes {
   Texture2D *textures;
   Model *models;
   float *scaling_factors;
-  int *action_sets; // each type is associated with an action set
+  Vector2 **offsets; // "actions" a piece type can take
+  int *offset_sizes;
 };
 
 struct Players {
   int *score;
   int *player_type;
   struct ChessPieces *pieces;
-};
-
-// Represents actions a piece type can make
-struct ActionSets {
-  // each action set has an array of offsets that represents the possible moves they can do
-  Vector2 **offsets;
-  // these are to store the number of offsets for each action
-  int *offset_sizes;
 };
 
 // TODO have multiple boards
