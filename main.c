@@ -222,12 +222,16 @@ main(void)
 
     int active_chess_piece = 0;
     int active_player = BLACK_PLAYER;
-    int player_sign; // This is specific to chess moves because they are inverted for either side
+
+    // This is specific to chess moves because they are inverted for either side
+    // In some other cell based game, this could be based on a direction variable instead
+    // we will want to orient the camera depending on the player as well
+    int player_sign = active_player == BLACK_PLAYER ? -1 : 1;
 
     // Need to have inverted movements for one side vs the other
-    //blackPieces.chess_positions[0].x = convertCoord(2, 8);
-    //blackPieces.chess_positions[0].y = convertCoord(0, 8);
-    //blackPieces.grid_positions[0] = calculateMove(blackPieces.chess_positions[0].x, blackPieces.chess_positions[0].y, pieceSize);
+    blackPieces.cells.chess_positions[1].x = convertCoord(2, 8);
+    blackPieces.cells.chess_positions[1].y = convertCoord(1, 8);
+    blackPieces.cells.grid_positions[1] = calculateMove(blackPieces.cells.chess_positions[1].x, blackPieces.cells.chess_positions[1].y, pieceSize);
 
     float time_since_move = 0;
 
@@ -299,11 +303,10 @@ main(void)
               Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
               highlight_pos.y = 0; // Setting the height of it
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
 
               for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
                 Vector2 offset = offsets[offsetIndex];
-                Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
-
                 Vector2 move_chess_pos;
                 // This is kind of janky, might decide to store the transformed coordinates and just look them up?
                 int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
@@ -319,7 +322,10 @@ main(void)
 
                 Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
 
-                //printVec3(move_position);
+                // Now we need a button to change into "move mode"
+                // then when we iterate through these, we can have a variable tracking
+                // the selected cell to move to as well
+                // and if another button is pressed, move that piece to that cell
 
                 DrawCube(move_position, 5, 0.1f, 5, GREEN);
               }
