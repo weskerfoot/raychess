@@ -221,7 +221,8 @@ main(void)
     setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
 
     int active_chess_piece = 0;
-    int active_player = WHITE_PLAYER;
+    int active_player = BLACK_PLAYER;
+    int player_sign; // This is specific to chess moves because they are inverted for either side
 
     // Need to have inverted movements for one side vs the other
     //blackPieces.chess_positions[0].x = convertCoord(2, 8);
@@ -231,104 +232,118 @@ main(void)
     float time_since_move = 0;
 
     while (!WindowShouldClose()) {
-        rlTPCameraUpdate(&orbitCam);
+      player_sign = active_player == BLACK_PLAYER ? -1 : 1;
+      rlTPCameraUpdate(&orbitCam);
 
-        BeginDrawing();
+      BeginDrawing();
 
-            ClearBackground(RAYWHITE);
+          ClearBackground(RAYWHITE);
 
-            rlTPCameraBeginMode3D(&orbitCam);
+          rlTPCameraBeginMode3D(&orbitCam);
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
-                  // FIXME only select live ones?
-                  active_chess_piece = clamp(active_chess_piece - 1 % 16, 0, 15);
-                  time_since_move = 0.0f;
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
+                // FIXME only select live ones?
+                active_chess_piece = clamp(active_chess_piece - (player_sign * 1) % 16, 0, 15);
+                time_since_move = 0.0f;
+              }
+
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2f) {
+                active_chess_piece = clamp(active_chess_piece + (player_sign * 1) % 16, 0, 15);
+                time_since_move = 0.0f;
+              }
+
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2f) {
+                // FIXME only select live ones?
+                active_chess_piece = clamp(active_chess_piece - (player_sign * 8) % 16, 0, 15);
+                time_since_move = 0.0f;
+              }
+
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
+                active_chess_piece = clamp(active_chess_piece + (player_sign * 8) % 16, 0, 15);
+                time_since_move = 0.0f;
+              }
+
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
+                active_chess_piece = clamp(active_chess_piece + (player_sign * 8) % 16, 0, 15);
+                time_since_move = 0.0f;
+              }
+
+              // Camera controls
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) < 0.0f) && time_since_move >= 0.2f) {
+                time_since_move = 0.0f;
+              }
+
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) > 0.95f) && time_since_move >= 0.2f) {
+                time_since_move = 0.0f;
+              }
+
+              time_since_move += GetFrameTime();
+
+              for (int i = 0; i < 16; i++) {
+                Vector3 gridPos = white_cells.grid_positions[i];
+                int pieceType = whitePieces.chess_type[i];
+                Model model = chessTypes.models[pieceType];
+                float scaling_factor = chessTypes.scaling_factors[pieceType];
+                DrawModel(model, gridPos, scaling_factor, WHITE);
+              }
+
+              for (int i = 0; i < 16; i++) {
+                Vector3 gridPos = black_cells.grid_positions[i];
+                int pieceType = blackPieces.chess_type[i];
+                Model model = chessTypes.models[pieceType];
+                float scaling_factor = chessTypes.scaling_factors[pieceType];
+                DrawModel(model, gridPos, scaling_factor, BLACK);
+              }
+
+              struct ChessPieces activePieces = players.pieces[active_player];
+              int activePieceType = activePieces.chess_type[active_chess_piece];
+
+              Vector2 *offsets = chessTypes.offsets[activePieceType];
+              int offsetNum = chessTypes.offset_sizes[activePieceType];
+
+              Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
+              highlight_pos.y = 0; // Setting the height of it
+              DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+
+              printf("=====\n");
+              for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
+                Vector2 offset = offsets[offsetIndex];
+                Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
+
+                Vector2 move_chess_pos;
+                // This is kind of janky, might decide to store the transformed coordinates and just look them up?
+                int new_x = convertCoord(active_chess_pos.x, 8) + (offset.x * player_sign);
+                int new_y = convertCoord(active_chess_pos.y, 8) + (offset.y * player_sign);
+
+                printf("new x = %d, new y = %d\n", new_x, new_y);
+                if (new_x < 0 || new_y < 0 || new_x >= 8 || new_y >= 8) {
+                  continue;
                 }
+                move_chess_pos.x = convertCoord(new_x, 8);
+                move_chess_pos.y = convertCoord(new_y, 8);
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2f) {
-                  active_chess_piece = clamp(active_chess_piece + 1 % 16, 0, 15);
-                  time_since_move = 0.0f;
-                }
+                // FIXME, filter out impossible moves that go off the edge of the board
+                //printf("new x = %d, new y = %d\n", new_x, new_y);
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2f) {
-                  // FIXME only select live ones?
-                  active_chess_piece = clamp(active_chess_piece - 8 % 16, 0, 15);
-                  time_since_move = 0.0f;
-                }
+                Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
-                  active_chess_piece = clamp(active_chess_piece + 8 % 16, 0, 15);
-                  time_since_move = 0.0f;
-                }
+                //printVec3(move_position);
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
-                  active_chess_piece = clamp(active_chess_piece + 8 % 16, 0, 15);
-                  time_since_move = 0.0f;
-                }
+                DrawCube(move_position, 5, 0.1f, 5, GREEN);
+              }
 
-                // Camera controls
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) < 0.0f) && time_since_move >= 0.2f) {
-                  time_since_move = 0.0f;
-                }
+              DrawGrid(8, 5.0f);
+          rlTPCameraEndMode3D();
 
-                if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) > 0.95f) && time_since_move >= 0.2f) {
-                  time_since_move = 0.0f;
-                }
+          DrawRectangle( 10, 10, 320, 93, Fade(SKYBLUE, 0.5f));
+          DrawRectangleLines( 10, 10, 320, 93, BLUE);
 
-                time_since_move += GetFrameTime();
+          DrawText("Free camera default controls:", 20, 20, 10, BLACK);
+          DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, DARKGRAY);
+          DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, DARKGRAY);
+          DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, DARKGRAY);
 
-                for (int i = 0; i < 16; i++) {
-                  Vector3 gridPos = white_cells.grid_positions[i];
-                  int pieceType = whitePieces.chess_type[i];
-                  Model model = chessTypes.models[pieceType];
-                  float scaling_factor = chessTypes.scaling_factors[pieceType];
-                  DrawModel(model, gridPos, scaling_factor, WHITE);
-                }
-
-                for (int i = 0; i < 16; i++) {
-                  Vector3 gridPos = black_cells.grid_positions[i];
-                  int pieceType = blackPieces.chess_type[i];
-                  Model model = chessTypes.models[pieceType];
-                  float scaling_factor = chessTypes.scaling_factors[pieceType];
-                  DrawModel(model, gridPos, scaling_factor, BLACK);
-                }
-
-                struct ChessPieces activePieces = players.pieces[active_player];
-                int activePieceType = activePieces.chess_type[active_chess_piece];
-
-                Vector2 *offsets = chessTypes.offsets[activePieceType];
-                int offsetNum = chessTypes.offset_sizes[activePieceType];
-
-                Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
-                highlight_pos.y = 0; // Setting the height of it
-                DrawCube(highlight_pos, 5, 0.1f, 5, RED);
-
-                for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
-                  Vector2 offset = offsets[offsetIndex];
-                  Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
-
-                  Vector2 move_chess_pos;
-                  // This is kind of janky, might decide to store the transformed coordinates and just look them up?
-                  move_chess_pos.x = convertCoord(convertCoord(active_chess_pos.x, 8) + offset.y, 8);
-                  move_chess_pos.y = convertCoord(convertCoord(active_chess_pos.y, 8) + offset.x, 8);
-
-                  Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
-
-                  DrawCube(move_position, 5, 0.1f, 5, GREEN);
-                }
-
-                DrawGrid(8, 5.0f);
-            rlTPCameraEndMode3D();
-
-            DrawRectangle( 10, 10, 320, 93, Fade(SKYBLUE, 0.5f));
-            DrawRectangleLines( 10, 10, 320, 93, BLUE);
-
-            DrawText("Free camera default controls:", 20, 20, 10, BLACK);
-            DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, DARKGRAY);
-            DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, DARKGRAY);
-            DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, DARKGRAY);
-
-        EndDrawing();
+      EndDrawing();
         //----------------------------------------------------------------------------------
     }
 
