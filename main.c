@@ -6,9 +6,14 @@
 
 const int NINTENDO_CONTROLLER = 1;
 
-static int startingPieces[16] = {
+static int whiteStartingPieces[16] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // Second row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // First row
+};
+
+static int blackStartingPieces[16] = {
+    ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK, // First row
+    PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN           // Second row
 };
 
 // allocate buffers for game data
@@ -99,8 +104,8 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
       Vector3 position = calculateMove(i, j, size);
       // there are always 16 pieces per player
       if (piece >= start && piece < end) { // there must be a nicer way of checking this
-        pieces.grid_positions[piece % 16] = position; // get rid of this and just do a lookup now?
-        pieces.chess_positions[piece % 16] = (Vector2){i, j};
+        pieces.cells.grid_positions[piece % 16] = position; // get rid of this and just do a lookup now?
+        pieces.cells.chess_positions[piece % 16] = (Vector2){i, j};
         pieces.is_dead[piece % 16] = 0;
       }
       piece++;
@@ -113,6 +118,68 @@ int
 clamp(int d, int min, int max) {
   const int t = d < min ? min : d;
   return t > max ? max : t;
+}
+
+void
+calculateMovable(struct Players players,
+                 int player,
+                 struct ChessPieces playerPieces,
+                 int activePiece) {
+  // Takes in players, a handle to a player, and that player's pieces, and an active piece
+  // sets the movable cells on the player to a subset of the grid
+  // then later code can simply iterate over the movable cells and highlight them, or set the position to move to
+  // based on an index into that array
+}
+
+// How to move to a movable cell
+// call a function with current chess piece type
+// current piece's cell
+// switch case on chess type and then iterate through offsets (could be a large number for e.g. bishop or queen or rook)
+// highlight all those cells in green (using DrawCube, which needs us to call calculateMove)
+// return the cell to move to's grid and chess position
+// then the caller can decide what to do with that, like highlight it in Red
+// if the move control is pressed, we set that to the piece's position in the main loop
+// otherwise, it does nothing
+// if we change pieces everything gets reset naturally
+
+
+Vector2
+getCellToMove(struct ChessPieces activePieces, int active_chess_piece) {
+  int activePiece = activePieces.chess_type[active_chess_piece];
+  Vector2 *offsets;
+  int offsetNum = 0;
+  // FIXME just store the offsets and the offset num associated with the pieces?
+  switch (activePiece) {
+    case PAWN:
+      offsets = &pawnOffsets[0];
+      offsetNum = (sizeof pawnOffsets)/sizeof(pawnOffsets[0]);
+      break;
+    case KNIGHT:
+      offsets = &knightOffsets[0];
+      offsetNum = (sizeof knightOffsets)/sizeof(pawnOffsets[0]);
+      break;
+    case BISHOP:
+      offsets = &bishopOffsets[0];
+      offsetNum = (sizeof bishopOffsets)/sizeof(pawnOffsets[0]);
+      break;
+    case ROOK:
+      offsets = &rookOffsets[0];
+      offsetNum = (sizeof rookOffsets)/sizeof(pawnOffsets[0]);
+      break;
+    case QUEEN:
+      offsets = &queenOffsets[0];
+      offsetNum = (sizeof queenOffsets)/sizeof(pawnOffsets[0]);
+      break;
+    case KING:
+      offsets = &kingOffsets[0];
+      offsetNum = (sizeof kingOffsets)/sizeof(pawnOffsets[0]);
+      break;
+  }
+  //printf("offset type = %d, offset num = %d\n", activePiece, offsetNum);
+
+  Vector2 pieceToMove = {.x = 0, .y = 0};
+
+  return pieceToMove;
 }
 
 int
@@ -136,18 +203,26 @@ main(void)
     SetTargetFPS(60);
     float pieceSize = 5.0f;
 
-    struct ChessPieces whitePieces = {
+    struct Cells white_cells = {
       .grid_positions = &whiteGridPositions[0],
       .chess_positions = &whiteChessPositions[0],
+    };
+
+    struct Cells black_cells = {
+      .grid_positions = &blackGridPositions[0],
+      .chess_positions = &blackChessPositions[0],
+    };
+
+    struct ChessPieces whitePieces = {
+      .cells = white_cells,
       .is_dead = &whitePiecesDead[0],
-      .chess_type = &startingPieces[0]
+      .chess_type = &whiteStartingPieces[0]
     };
 
     struct ChessPieces blackPieces = {
-      .grid_positions = &blackGridPositions[0],
-      .chess_positions = &blackChessPositions[0],
+      .cells = black_cells,
       .is_dead = &blackPiecesDead[0],
-      .chess_type = &startingPieces[0]
+      .chess_type = &blackStartingPieces[0]
     };
 
     int score[2] = {0, 0};
@@ -162,7 +237,6 @@ main(void)
 
     // Use to store data about different piece types
     struct ChessTypes chessTypes = {
-      .chess_type = &startingPieces[0],
       .textures = &pieceTextures[0],
       .models = &pieceModels[0],
       .scaling_factors = &pieceScalingFactors[0]
@@ -229,7 +303,7 @@ main(void)
                 time_since_move += GetFrameTime();
 
                 for (int i = 0; i < 16; i++) {
-                  Vector3 gridPos = whitePieces.grid_positions[i];
+                  Vector3 gridPos = white_cells.grid_positions[i];
                   int pieceType = whitePieces.chess_type[i];
                   Model model = chessTypes.models[pieceType];
                   float scaling_factor = chessTypes.scaling_factors[pieceType];
@@ -237,7 +311,7 @@ main(void)
                 }
 
                 for (int i = 0; i < 16; i++) {
-                  Vector3 gridPos = blackPieces.grid_positions[i];
+                  Vector3 gridPos = black_cells.grid_positions[i];
                   int pieceType = blackPieces.chess_type[i];
                   Model model = chessTypes.models[pieceType];
                   float scaling_factor = chessTypes.scaling_factors[pieceType];
@@ -246,9 +320,11 @@ main(void)
 
                 struct ChessPieces activePieces = players.pieces[active_player];
 
-                Vector3 highlight_pos = activePieces.grid_positions[active_chess_piece];
+                Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
                 highlight_pos.y = 0;
                 DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+
+                getCellToMove(activePieces, active_chess_piece);
 
                 DrawGrid(8, 5.0f);
             rlTPCameraEndMode3D();
