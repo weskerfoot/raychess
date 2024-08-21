@@ -139,17 +139,6 @@ clamp(int d, int min, int max) {
   return t > max ? max : t;
 }
 
-void
-calculateMovable(struct Players players,
-                 int player,
-                 struct ChessPieces playerPieces,
-                 int activePiece) {
-  // Takes in players, a handle to a player, and that player's pieces, and an active piece
-  // sets the movable cells on the player to a subset of the grid
-  // then later code can simply iterate over the movable cells and highlight them, or set the position to move to
-  // based on an index into that array
-}
-
 int
 main(void)
 {
