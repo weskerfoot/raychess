@@ -6,12 +6,12 @@
 
 const int NINTENDO_CONTROLLER = 1;
 
-static int whiteStartingPieces[16] = {
+static int whiteStartingPieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // Second row
 };
 
-static int blackStartingPieces[16] = {
+static int blackStartingPieces[N_PIECES] = {
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK, // Second row
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN           // First row
 };
@@ -39,14 +39,14 @@ static Vector2 *offsets[6] = {
   &kingOffsets[0]
 };
 
-static Vector3 whiteGridPositions[16];
-static Vector3 blackGridPositions[16];
-static Vector2 whiteChessPositions[16];
-static Vector2 blackChessPositions[16];
-static char whitePiecesDead[16];
-static char blackPiecesDead[16];
+static Vector3 whiteGridPositions[N_PIECES];
+static Vector3 blackGridPositions[N_PIECES];
+static Vector2 whiteChessPositions[N_PIECES];
+static Vector2 blackChessPositions[N_PIECES];
+static char whitePiecesDead[N_PIECES];
+static char blackPiecesDead[N_PIECES];
 
-static Vector3 grid_positions[64];
+static Vector3 grid_positions[N_CELLS];
 
 void
 loadAssets() {
@@ -84,7 +84,7 @@ generatePositions(int pieceSize) {
     for (float j = -3; j <= 4; j++) {
       Vector3 position = calculateMove(i, j, pieceSize);
       // there are always 16 pieces per player
-      if (piece < 64) {
+      if (piece < N_CELLS) {
         grid_positions[piece] = position;
       }
       piece++;
@@ -110,12 +110,12 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
 
   if (side == BOTTOM_SIDE) {
     start = 0;
-    end = 16;
+    end = N_PIECES;
   }
 
   else {
-    start = 48;
-    end = 64;
+    start = N_CELLS - (N_PIECES);
+    end = N_CELLS;
   }
 
   for (float i = -3; i <= 4; i++) {
@@ -123,9 +123,9 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
       Vector3 position = calculateMove(i, j, size);
       // there are always 16 pieces per player
       if (piece >= start && piece < end) { // there must be a nicer way of checking this
-        pieces.cells.grid_positions[piece % 16] = position; // get rid of this and just do a lookup now?
-        pieces.cells.chess_positions[piece % 16] = (Vector2){i, j};
-        pieces.is_dead[piece % 16] = 0;
+        pieces.cells.grid_positions[piece % N_PIECES] = position; // get rid of this and just do a lookup now?
+        pieces.cells.chess_positions[piece % N_PIECES] = (Vector2){i, j};
+        pieces.is_dead[piece % N_PIECES] = 0;
       }
       piece++;
     }
@@ -243,28 +243,23 @@ main(void)
 
               if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
                 // FIXME only select live ones?
-                active_chess_piece = clamp(active_chess_piece - (player_sign * 1) % 16, 0, 15);
+                active_chess_piece = clamp(active_chess_piece - (player_sign * 1) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
               if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2f) {
-                active_chess_piece = clamp(active_chess_piece + (player_sign * 1) % 16, 0, 15);
+                active_chess_piece = clamp(active_chess_piece + (player_sign * 1) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
               if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2f) {
                 // FIXME only select live ones?
-                active_chess_piece = clamp(active_chess_piece - (player_sign * 8) % 16, 0, 15);
+                active_chess_piece = clamp(active_chess_piece - (player_sign * N_ROWS) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
               if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
-                active_chess_piece = clamp(active_chess_piece + (player_sign * 8) % 16, 0, 15);
-                time_since_move = 0.0f;
-              }
-
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
-                active_chess_piece = clamp(active_chess_piece + (player_sign * 8) % 16, 0, 15);
+                active_chess_piece = clamp(active_chess_piece + (player_sign * N_ROWS) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
@@ -279,7 +274,7 @@ main(void)
 
               time_since_move += GetFrameTime();
 
-              for (int i = 0; i < 16; i++) {
+              for (int i = 0; i < N_PIECES; i++) {
                 Vector3 gridPos = white_cells.grid_positions[i];
                 int pieceType = whitePieces.chess_type[i];
                 Model model = chessTypes.models[pieceType];
@@ -287,7 +282,7 @@ main(void)
                 DrawModel(model, gridPos, scaling_factor, WHITE);
               }
 
-              for (int i = 0; i < 16; i++) {
+              for (int i = 0; i < N_PIECES; i++) {
                 Vector3 gridPos = black_cells.grid_positions[i];
                 int pieceType = blackPieces.chess_type[i];
                 Model model = chessTypes.models[pieceType];
@@ -305,25 +300,22 @@ main(void)
               highlight_pos.y = 0; // Setting the height of it
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
-              printf("=====\n");
               for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
                 Vector2 offset = offsets[offsetIndex];
                 Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
 
                 Vector2 move_chess_pos;
                 // This is kind of janky, might decide to store the transformed coordinates and just look them up?
-                int new_x = convertCoord(active_chess_pos.x, 8) + (offset.x * player_sign);
-                int new_y = convertCoord(active_chess_pos.y, 8) + (offset.y * player_sign);
+                int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
+                int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
 
-                printf("new x = %d, new y = %d\n", new_x, new_y);
-                if (new_x < 0 || new_y < 0 || new_x >= 8 || new_y >= 8) {
+                // Filter out moves off the end of the board
+                if (new_x < 0 || new_y < 0 || new_x >= N_ROWS || new_y >= N_COLS) {
                   continue;
                 }
-                move_chess_pos.x = convertCoord(new_x, 8);
-                move_chess_pos.y = convertCoord(new_y, 8);
 
-                // FIXME, filter out impossible moves that go off the edge of the board
-                //printf("new x = %d, new y = %d\n", new_x, new_y);
+                move_chess_pos.x = convertCoord(new_x, N_ROWS);
+                move_chess_pos.y = convertCoord(new_y, N_COLS);
 
                 Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
 
@@ -332,7 +324,7 @@ main(void)
                 DrawCube(move_position, 5, 0.1f, 5, GREEN);
               }
 
-              DrawGrid(8, 5.0f);
+              DrawGrid(N_ROWS, 5.0f);
           rlTPCameraEndMode3D();
 
           DrawRectangle( 10, 10, 320, 93, Fade(SKYBLUE, 0.5f));
