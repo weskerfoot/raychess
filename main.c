@@ -249,24 +249,32 @@ main(void)
               Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
 
               // TODO change the results of the controls depending on which state the game is in (mode = move, mode = select piece, etc)
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
+                  activePlayerState == PIECE_SELECTION &&
+                  time_since_move >= 0.2f) {
                 // FIXME only select live ones?
                 active_chess_piece = clamp(active_chess_piece - (player_sign * 1) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) && time_since_move >= 0.2f) {
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
+                  activePlayerState == PIECE_SELECTION &&
+                  time_since_move >= 0.2f) {
                 active_chess_piece = clamp(active_chess_piece + (player_sign * 1) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) && time_since_move >= 0.2f) {
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
+                  activePlayerState == PIECE_SELECTION &&
+                  time_since_move >= 0.2f) {
                 // FIXME only select live ones?
                 active_chess_piece = clamp(active_chess_piece - (player_sign * N_ROWS) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }
 
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) && time_since_move >= 0.2f) {
+              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
+                  activePlayerState == PIECE_SELECTION &&
+                  time_since_move >= 0.2f) {
                 active_chess_piece = clamp(active_chess_piece + (player_sign * N_ROWS) % N_PIECES, 0, 15);
                 time_since_move = 0.0f;
               }

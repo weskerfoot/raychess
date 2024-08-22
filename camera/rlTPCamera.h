@@ -56,7 +56,7 @@ typedef struct
     // keys used to control the camera
     int ControlsKeys[LAST_CONTROL];
 
-    // the speed in units/second to move 
+    // the speed in units/second to move
     // X = sidestep
     // Y = jump/fall
     // Z = forward
