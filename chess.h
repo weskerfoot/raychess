@@ -1,5 +1,16 @@
 static Vector3 calculateMove(int, int, int);
 
+#define N_ROWS 8
+#define N_COLS 8
+#define N_CELLS (N_ROWS*N_COLS)
+#define N_PIECES (N_ROWS*2)
+
+enum GAME_STATE {
+  PIECE_SELECTION = 0,
+  PIECE_MOVE = 1,
+  CHECKMATE = 2
+};
+
 enum PLAYER_TYPES {
   WHITE_PLAYER = 0,
   BLACK_PLAYER = 1
@@ -51,40 +62,41 @@ struct Players {
   int *score;
   int *player_type;
   struct ChessPieces *pieces;
+  int *player_states;
 };
 
 // TODO have multiple boards
 
 // Pawn move offsets (including the initial two-square move)
 Vector2 pawnOffsets[] = {
-    {0, 1},  // Single square forward
-    {0, 2}   // Two squares forward (only available as the first move)
+    {1, 0},  // Single square forward
+    {2, 0}   // Two squares forward (only available as the first move)
 };
 
 // Knight move offsets
 Vector2 knightOffsets[] = {
-    {2, 1}, {2, -1}, {-2, 1}, {-2, -1},
-    {1, 2}, {1, -2}, {-1, 2}, {-1, -2}
+    {1, 2}, {-1, 2}, {1, -2}, {-1, -2},
+    {2, 1}, {-2, 1}, {2, -1}, {-2, -1}
 };
 
 // Bishop move offsets (unbounded)
 Vector2 bishopOffsets[] = {
-    {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+    {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
 };
 
 // Rook move offsets (unbounded)
 Vector2 rookOffsets[] = {
-    {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+    {0, 1}, {0, -1}, {1, 0}, {-1, 0}
 };
 
 // Queen move offsets (combines rook and bishop moves, unbounded)
 Vector2 queenOffsets[] = {
-    {1, 0}, {-1, 0}, {0, 1}, {0, -1}, // Rook moves
-    {1, 1}, {1, -1}, {-1, 1}, {-1, -1} // Bishop moves
+    {0, 1}, {0, -1}, {1, 0}, {-1, 0}, // Rook moves
+    {1, 1}, {-1, 1}, {1, -1}, {-1, -1} // Bishop moves
 };
 
 // King move offsets
 Vector2 kingOffsets[] = {
-    {1, 0}, {-1, 0}, {0, 1}, {0, -1},
-    {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+    {0, 1}, {0, -1}, {1, 0}, {-1, 0},
+    {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
 };

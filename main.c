@@ -19,7 +19,7 @@ static int blackStartingPieces[N_PIECES] = {
 // allocate buffers for game data
 static Texture2D pieceTextures[6];
 static Model pieceModels[6];
-static float pieceScalingFactors[6] = {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
+static float pieceScalingFactors[6] = {20.0f, 20.0f, 20.0f, 20.0f, 20.0f, 20.0f};
 
 static int offset_sizes[6] = {
   (sizeof pawnOffsets)/sizeof(pawnOffsets[0]),
@@ -198,12 +198,14 @@ main(void)
     // Player type stuff
 
     int score[2] = {0, 0};
-    int active_players[2] = {WHITE_PLAYER, BLACK_PLAYER};
+    int active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
+    int player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
 
-    struct Players players = {
+    struct Players active_players = {
       .score = &score[0],
-      .player_type = &active_players[0],
-      .pieces = &pieces[0]
+      .player_type = &active_players_buf[0],
+      .pieces = &pieces[0],
+      .player_states = &player_states_buf[0]
     };
 
     setPieces(whitePieces, pieceSize, TOP_SIDE);
@@ -234,6 +236,19 @@ main(void)
 
           rlTPCameraBeginMode3D(&orbitCam);
 
+              struct ChessPieces activePieces = active_players.pieces[active_player];
+              int activePlayerState = active_players.player_states[active_player];
+              int activePieceType = activePieces.chess_type[active_chess_piece];
+
+              Vector2 *offsets = chessTypes.offsets[activePieceType];
+              int offsetNum = chessTypes.offset_sizes[activePieceType];
+
+              Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
+              highlight_pos.y = 0; // Setting the height of it
+              DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
+
+              // TODO change the results of the controls depending on which state the game is in (mode = move, mode = select piece, etc)
               if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) && time_since_move >= 0.2f) {
                 // FIXME only select live ones?
                 active_chess_piece = clamp(active_chess_piece - (player_sign * 1) % N_PIECES, 0, 15);
@@ -265,6 +280,16 @@ main(void)
                 time_since_move = 0.0f;
               }
 
+              if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_LEFT_TRIGGER_2) && time_since_move >= 0.2f) {
+                if (activePlayerState == PIECE_MOVE) {
+                  activePlayerState = active_players.player_states[active_player] = PIECE_SELECTION;
+                }
+                else {
+                  activePlayerState = active_players.player_states[active_player] = PIECE_MOVE;
+                }
+                time_since_move = 0.0f;
+              }
+
               time_since_move += GetFrameTime();
 
               for (int i = 0; i < N_PIECES; i++) {
@@ -282,17 +307,6 @@ main(void)
                 float scaling_factor = chessTypes.scaling_factors[pieceType];
                 DrawModel(model, gridPos, scaling_factor, BLACK);
               }
-
-              struct ChessPieces activePieces = players.pieces[active_player];
-              int activePieceType = activePieces.chess_type[active_chess_piece];
-
-              Vector2 *offsets = chessTypes.offsets[activePieceType];
-              int offsetNum = chessTypes.offset_sizes[activePieceType];
-
-              Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
-              highlight_pos.y = 0; // Setting the height of it
-              DrawCube(highlight_pos, 5, 0.1f, 5, RED);
-              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
 
               for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
                 Vector2 offset = offsets[offsetIndex];
@@ -322,13 +336,10 @@ main(void)
               DrawGrid(N_ROWS, 5.0f);
           rlTPCameraEndMode3D();
 
-          DrawRectangle( 10, 10, 320, 93, Fade(SKYBLUE, 0.5f));
-          DrawRectangleLines( 10, 10, 320, 93, BLUE);
+          DrawRectangle( 10, 6, 50, 50, Fade(SKYBLUE, 0.5f));
+          DrawRectangleLines( 10, 6, 50, 50, BLUE);
 
-          DrawText("Free camera default controls:", 20, 20, 10, BLACK);
-          DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, DARKGRAY);
-          DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, DARKGRAY);
-          DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, DARKGRAY);
+          DrawText("Chess!", 20, 20, 5, BLACK);
 
       EndDrawing();
         //----------------------------------------------------------------------------------
