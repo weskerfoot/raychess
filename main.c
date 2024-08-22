@@ -6,12 +6,12 @@
 
 const int NINTENDO_CONTROLLER = 1;
 
-static int whiteStartingPieces[N_PIECES] = {
+static ChessPiece whiteStartingPieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // Second row
 };
 
-static int blackStartingPieces[N_PIECES] = {
+static ChessPiece blackStartingPieces[N_PIECES] = {
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK, // Second row
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN           // First row
 };
@@ -198,8 +198,8 @@ main(void)
     // Player type stuff
 
     int score[2] = {0, 0};
-    int active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
-    int player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
+    PlayerType active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
+    PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
 
     struct Players active_players = {
       .score = &score[0],
@@ -212,14 +212,14 @@ main(void)
     setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
 
     int active_chess_piece = 0;
-    int active_player = BLACK_PLAYER;
+    int active_player = WHITE_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
     // In some other cell based game, this could be based on a direction variable instead
     // we will want to orient the camera depending on the player as well
     int player_sign = active_player == BLACK_PLAYER ? -1 : 1;
 
-    // Need to have inverted movements for one side vs the other
+    // FIXME remove this
     blackPieces.cells.chess_positions[1].x = convertCoord(2, 8);
     blackPieces.cells.chess_positions[1].y = convertCoord(1, 8);
     blackPieces.cells.grid_positions[1] = calculateMove(blackPieces.cells.chess_positions[1].x, blackPieces.cells.chess_positions[1].y, pieceSize);
