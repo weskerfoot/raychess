@@ -202,14 +202,14 @@ main(void)
     PlayerType active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
     int select_to_move_cells_buf[2] = {0, 0};
-    int possible_cell_select_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
+    int possible_move_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
     int select_to_move_to_cells_buf[2] = {0, 0};
 
     struct Players active_players = {
       .score = &score[0],
       .select_to_move_cells = &select_to_move_cells_buf[0],
       .select_to_move_to_cells = &select_to_move_to_cells_buf[0],
-      .possible_cell_select_counts = &possible_cell_select_counts_buf[0],
+      .possible_move_counts = &possible_move_counts_buf[0],
       .player_type = &active_players_buf[0],
       .pieces = &pieces[0],
       .player_states = &player_states_buf[0]
@@ -243,17 +243,15 @@ main(void)
           rlTPCameraBeginMode3D(&orbitCam);
 
               struct ChessPieces activePieces = active_players.pieces[active_player];
-              int activePlayerState = active_players.player_states[active_player];
 
+              int activePlayerState = active_players.player_states[active_player];
               int active_cell_to_move = active_players.select_to_move_cells[active_player];
               int active_cell_to_move_to = active_players.select_to_move_to_cells[active_player];
-
               int activePieceType = activePieces.chess_type[active_cell_to_move];
+              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell_to_move];
 
               Vector2 *offsets = chessTypes.offsets[activePieceType];
               int offsetNum = chessTypes.offset_sizes[activePieceType];
-
-              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell_to_move];
 
               int numberPossibleMoves = 0;
               for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
@@ -284,10 +282,10 @@ main(void)
 
               switch (activePlayerState) {
                 case PIECE_MOVE:
-                  active_players.possible_cell_select_counts[active_player] = numberPossibleMoves;
+                  active_players.possible_move_counts[active_player] = numberPossibleMoves;
                   break;
                 case PIECE_SELECTION:
-                  active_players.possible_cell_select_counts[active_player] = N_PIECES;
+                  active_players.possible_move_counts[active_player] = N_PIECES;
                   break;
               }
 
@@ -296,41 +294,42 @@ main(void)
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
               // Control handling depends on player state
-              int possible_cell_select_count = active_players.possible_cell_select_counts[active_player];
+              int possible_move_count = active_players.possible_move_counts[active_player];
+              int row_move_to_back = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
+              int row_move_to_forward = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
+              int col_move_to_forward = clamp(active_cell_to_move_to + (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
+              int col_move_to_back = clamp(active_cell_to_move_to - (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
+
+              int row_move_back = clamp(active_cell_to_move - (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
+              int row_move_forward = clamp(active_cell_to_move + (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
+              int col_move_forward = clamp(active_cell_to_move + (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
+              int col_move_back = clamp(active_cell_to_move - (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
 
               switch (activePlayerState) {
                 case PIECE_MOVE:
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to - (player_sign * 1) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_to_cells[active_player] = col_move_to_back;
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
                       time_since_move >= 0.2f) {
-                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to + (player_sign * 1) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_to_cells[active_player] = col_move_to_forward;
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_to_cells[active_player] = row_move_to_back;
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
                       time_since_move >= 0.2f) {
-                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_to_cells[active_player] = row_move_to_forward;
                     time_since_move = 0.0f;
                   }
                   break;
@@ -338,34 +337,26 @@ main(void)
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move - (player_sign * 1) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_cells[active_player] = col_move_back;
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
                       time_since_move >= 0.2f) {
-                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move + (player_sign * 1) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_cells[active_player] = col_move_forward;
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move - (player_sign * N_ROWS) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_cells[active_player] = row_move_back;
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
                       time_since_move >= 0.2f) {
-                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move + (player_sign * N_ROWS) % possible_cell_select_count,
-                                                                         0,
-                                                                         possible_cell_select_count - 1);
+                    active_players.select_to_move_cells[active_player] = row_move_forward;
                     time_since_move = 0.0f;
                   }
                   break;

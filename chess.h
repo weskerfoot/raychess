@@ -63,7 +63,7 @@ struct Players {
   int *score;
   int *select_to_move_cells; // tracks which cell you / a piece is actually on
   int *select_to_move_to_cells; // tracks which cell you're thinking of moving to
-  int *possible_cell_select_counts; // how many cells they could select currently
+  int *possible_move_counts; // how many cells they could select currently
   PlayerType *player_type;
   PlayerState *player_states;
   struct ChessPieces *pieces;
