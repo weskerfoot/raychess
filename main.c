@@ -198,14 +198,17 @@ main(void)
     // Player type stuff
 
     int score[2] = {0, 0};
+    // TODO allocate these from an arena for variable number of players (and bots / NPCs later)
     PlayerType active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
-    int selected_cells_buf[2] = {0, 0};
+    int select_to_move_cells_buf[2] = {0, 0};
     int possible_cell_select_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
+    int select_to_move_to_cells_buf[2] = {0, 0};
 
     struct Players active_players = {
       .score = &score[0],
-      .selected_cells = &selected_cells_buf[0],
+      .select_to_move_cells = &select_to_move_cells_buf[0],
+      .select_to_move_to_cells = &select_to_move_to_cells_buf[0],
       .possible_cell_select_counts = &possible_cell_select_counts_buf[0],
       .player_type = &active_players_buf[0],
       .pieces = &pieces[0],
@@ -241,36 +244,66 @@ main(void)
 
               struct ChessPieces activePieces = active_players.pieces[active_player];
               int activePlayerState = active_players.player_states[active_player];
-              int active_cell = active_players.selected_cells[active_player];
-              int activePieceType = activePieces.chess_type[active_cell];
+
+              int active_cell_to_move = active_players.select_to_move_cells[active_player];
+              int active_cell_to_move_to = active_players.select_to_move_to_cells[active_player];
+
+              int activePieceType = activePieces.chess_type[active_cell_to_move];
 
               Vector2 *offsets = chessTypes.offsets[activePieceType];
               int offsetNum = chessTypes.offset_sizes[activePieceType];
 
-              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell];
+              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell_to_move];
+
+              int numberPossibleMoves = 0;
+              for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
+                Vector2 offset = offsets[offsetIndex];
+                Vector2 move_chess_pos;
+                // This is kind of janky, might decide to store the transformed coordinates and just look them up?
+                int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
+                int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
+
+                // Filter out moves off the end of the board
+                if (new_x < 0 || new_y < 0 || new_x >= N_ROWS || new_y >= N_COLS) {
+                  continue;
+                }
+
+                move_chess_pos.x = convertCoord(new_x, N_ROWS);
+                move_chess_pos.y = convertCoord(new_y, N_COLS);
+
+                Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
+
+                if (numberPossibleMoves == active_cell_to_move_to) { // FIXME broken ?
+                  DrawCube(move_position, 5, 0.1f, 5, BLUE);
+                }
+                else {
+                  DrawCube(move_position, 5, 0.1f, 5, GREEN);
+                }
+                numberPossibleMoves++;
+              }
 
               switch (activePlayerState) {
                 case PIECE_MOVE:
-                  active_players.possible_cell_select_counts[active_player] = offsetNum;
+                  active_players.possible_cell_select_counts[active_player] = numberPossibleMoves;
                   break;
                 case PIECE_SELECTION:
-                  // FIXME should be the number of *live* pieces
                   active_players.possible_cell_select_counts[active_player] = N_PIECES;
-                  Vector3 highlight_pos = activePieces.cells.grid_positions[active_cell];
-                  highlight_pos.y = 0; // Setting the height of it
-                  DrawCube(highlight_pos, 5, 0.1f, 5, RED);
                   break;
               }
 
+              Vector3 highlight_pos = activePieces.cells.grid_positions[active_cell_to_move];
+              highlight_pos.y = 0; // Setting the height of it
+              DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+
               // Control handling depends on player state
+              int possible_cell_select_count = active_players.possible_cell_select_counts[active_player];
+
               switch (activePlayerState) {
                 case PIECE_MOVE:
-                case PIECE_SELECTION:
-                  int possible_cell_select_count = active_players.possible_cell_select_counts[active_player];
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * 1) % possible_cell_select_count,
+                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to - (player_sign * 1) % possible_cell_select_count,
                                                                          0,
                                                                          possible_cell_select_count - 1);
                     time_since_move = 0.0f;
@@ -278,7 +311,7 @@ main(void)
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
                       time_since_move >= 0.2f) {
-                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * 1) % possible_cell_select_count,
+                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to + (player_sign * 1) % possible_cell_select_count,
                                                                          0,
                                                                          possible_cell_select_count - 1);
                     time_since_move = 0.0f;
@@ -287,7 +320,7 @@ main(void)
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * N_ROWS) % possible_cell_select_count,
+                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % possible_cell_select_count,
                                                                          0,
                                                                          possible_cell_select_count - 1);
                     time_since_move = 0.0f;
@@ -295,7 +328,42 @@ main(void)
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
                       time_since_move >= 0.2f) {
-                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * N_ROWS) % possible_cell_select_count,
+                    active_players.select_to_move_to_cells[active_player] = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
+                    time_since_move = 0.0f;
+                  }
+                  break;
+                case PIECE_SELECTION:
+                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
+                      time_since_move >= 0.2f) {
+                    // FIXME only select live ones?
+                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move - (player_sign * 1) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
+                    time_since_move = 0.0f;
+                  }
+
+                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
+                      time_since_move >= 0.2f) {
+                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move + (player_sign * 1) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
+                    time_since_move = 0.0f;
+                  }
+
+                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
+                      time_since_move >= 0.2f) {
+                    // FIXME only select live ones?
+                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move - (player_sign * N_ROWS) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
+                    time_since_move = 0.0f;
+                  }
+
+                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
+                      time_since_move >= 0.2f) {
+                    active_players.select_to_move_cells[active_player] = clamp(active_cell_to_move + (player_sign * N_ROWS) % possible_cell_select_count,
                                                                          0,
                                                                          possible_cell_select_count - 1);
                     time_since_move = 0.0f;
@@ -340,31 +408,6 @@ main(void)
                 Model model = chessTypes.models[pieceType];
                 float scaling_factor = chessTypes.scaling_factors[pieceType];
                 DrawModel(model, gridPos, scaling_factor, BLACK);
-              }
-
-              for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
-                Vector2 offset = offsets[offsetIndex];
-                Vector2 move_chess_pos;
-                // This is kind of janky, might decide to store the transformed coordinates and just look them up?
-                int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
-                int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
-
-                // Filter out moves off the end of the board
-                if (new_x < 0 || new_y < 0 || new_x >= N_ROWS || new_y >= N_COLS) {
-                  continue;
-                }
-
-                move_chess_pos.x = convertCoord(new_x, N_ROWS);
-                move_chess_pos.y = convertCoord(new_y, N_COLS);
-
-                Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
-
-                // Now we need a button to change into "move mode"
-                // then when we iterate through these, we can have a variable tracking
-                // the selected cell to move to as well
-                // and if another button is pressed, move that piece to that cell
-
-                DrawCube(move_position, 5, 0.1f, 5, GREEN);
               }
 
               DrawGrid(N_ROWS, 5.0f);
