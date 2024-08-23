@@ -61,6 +61,7 @@ struct ChessTypes {
 
 struct Players {
   int *score;
+  int *selected_cells;
   PlayerType *player_type;
   PlayerState *player_states;
   struct ChessPieces *pieces;

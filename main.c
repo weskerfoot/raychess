@@ -200,9 +200,11 @@ main(void)
     int score[2] = {0, 0};
     PlayerType active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
+    int selected_cells_buf[2] = {0, 0};
 
     struct Players active_players = {
       .score = &score[0],
+      .selected_cells = &selected_cells_buf[0],
       .player_type = &active_players_buf[0],
       .pieces = &pieces[0],
       .player_states = &player_states_buf[0]
@@ -211,7 +213,6 @@ main(void)
     setPieces(whitePieces, pieceSize, TOP_SIDE);
     setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
 
-    int active_chess_piece = 0;
     int active_player = WHITE_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
@@ -238,15 +239,16 @@ main(void)
 
               struct ChessPieces activePieces = active_players.pieces[active_player];
               int activePlayerState = active_players.player_states[active_player];
-              int activePieceType = activePieces.chess_type[active_chess_piece];
+              int active_cell = active_players.selected_cells[active_player];
+              int activePieceType = activePieces.chess_type[active_cell];
 
               Vector2 *offsets = chessTypes.offsets[activePieceType];
               int offsetNum = chessTypes.offset_sizes[activePieceType];
 
-              Vector3 highlight_pos = activePieces.cells.grid_positions[active_chess_piece];
+              Vector3 highlight_pos = activePieces.cells.grid_positions[active_cell];
               highlight_pos.y = 0; // Setting the height of it
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
-              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_chess_piece];
+              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell];
 
               // Control handling depends on player state
               switch (activePlayerState) {
@@ -254,26 +256,26 @@ main(void)
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_chess_piece = clamp(active_chess_piece - (player_sign * 1) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * 1) % N_PIECES, 0, 15);
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
                       time_since_move >= 0.2f) {
-                    active_chess_piece = clamp(active_chess_piece + (player_sign * 1) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * 1) % N_PIECES, 0, 15);
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_chess_piece = clamp(active_chess_piece - (player_sign * N_ROWS) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * N_ROWS) % N_PIECES, 0, 15);
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
                       time_since_move >= 0.2f) {
-                    active_chess_piece = clamp(active_chess_piece + (player_sign * N_ROWS) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * N_ROWS) % N_PIECES, 0, 15);
                     time_since_move = 0.0f;
                   }
                   break;
