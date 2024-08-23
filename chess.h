@@ -62,6 +62,7 @@ struct ChessTypes {
 struct Players {
   int *score;
   int *selected_cells;
+  int *possible_cell_select_counts; // how many cells they could select currently
   PlayerType *player_type;
   PlayerState *player_states;
   struct ChessPieces *pieces;

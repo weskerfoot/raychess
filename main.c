@@ -201,10 +201,12 @@ main(void)
     PlayerType active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
     int selected_cells_buf[2] = {0, 0};
+    int possible_cell_select_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
 
     struct Players active_players = {
       .score = &score[0],
       .selected_cells = &selected_cells_buf[0],
+      .possible_cell_select_counts = &possible_cell_select_counts_buf[0],
       .player_type = &active_players_buf[0],
       .pieces = &pieces[0],
       .player_states = &player_states_buf[0]
@@ -245,37 +247,57 @@ main(void)
               Vector2 *offsets = chessTypes.offsets[activePieceType];
               int offsetNum = chessTypes.offset_sizes[activePieceType];
 
-              Vector3 highlight_pos = activePieces.cells.grid_positions[active_cell];
-              highlight_pos.y = 0; // Setting the height of it
-              DrawCube(highlight_pos, 5, 0.1f, 5, RED);
               Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell];
+
+              switch (activePlayerState) {
+                case PIECE_MOVE:
+                  active_players.possible_cell_select_counts[active_player] = offsetNum;
+                  break;
+                case PIECE_SELECTION:
+                  // FIXME should be the number of *live* pieces
+                  active_players.possible_cell_select_counts[active_player] = N_PIECES;
+                  Vector3 highlight_pos = activePieces.cells.grid_positions[active_cell];
+                  highlight_pos.y = 0; // Setting the height of it
+                  DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+                  break;
+              }
 
               // Control handling depends on player state
               switch (activePlayerState) {
+                case PIECE_MOVE:
                 case PIECE_SELECTION:
+                  int possible_cell_select_count = active_players.possible_cell_select_counts[active_player];
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * 1) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * 1) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
                       time_since_move >= 0.2f) {
-                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * 1) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * 1) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
                       time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * N_ROWS) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell - (player_sign * N_ROWS) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
                     time_since_move = 0.0f;
                   }
 
                   if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
                       time_since_move >= 0.2f) {
-                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * N_ROWS) % N_PIECES, 0, 15);
+                    active_players.selected_cells[active_player] = clamp(active_cell + (player_sign * N_ROWS) % possible_cell_select_count,
+                                                                         0,
+                                                                         possible_cell_select_count - 1);
                     time_since_move = 0.0f;
                   }
                   break;
@@ -302,6 +324,7 @@ main(void)
 
               time_since_move += GetFrameTime();
 
+              // FIXME should be the number of *live* pieces
               for (int i = 0; i < N_PIECES; i++) {
                 Vector3 gridPos = white_cells.grid_positions[i];
                 int pieceType = whitePieces.chess_type[i];
@@ -310,6 +333,7 @@ main(void)
                 DrawModel(model, gridPos, scaling_factor, WHITE);
               }
 
+              // FIXME should be the number of *live* pieces
               for (int i = 0; i < N_PIECES; i++) {
                 Vector3 gridPos = black_cells.grid_positions[i];
                 int pieceType = blackPieces.chess_type[i];
