@@ -4,7 +4,38 @@
 #include "chess.h"
 #include "camera/rlTPCamera.h"
 
+#define left_x_control() (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT))
+#define left_y_control() (GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN))
+
 const int NINTENDO_CONTROLLER = 1;
+
+static int
+left_x_left_control() {
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95f;
+  int key_x = IsKeyDown(KEY_A);
+  return gamepad_x || key_x;
+}
+
+static int
+left_x_right_control() {
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0;
+  int key_x = IsKeyDown(KEY_D);
+  return gamepad_x || key_x;
+}
+
+static int
+left_y_up_control() {
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f;
+  int key_x = IsKeyDown(KEY_W);
+  return gamepad_x || key_x;
+}
+
+static int
+left_y_down_control() {
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0;
+  int key_x = IsKeyDown(KEY_S);
+  return gamepad_x || key_x;
+}
 
 static ChessPiece whiteStartingPieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
@@ -45,7 +76,6 @@ static Vector2 whiteChessPositions[N_PIECES];
 static Vector2 blackChessPositions[N_PIECES];
 static char whitePiecesDead[N_PIECES];
 static char blackPiecesDead[N_PIECES];
-
 static Vector3 grid_positions[N_CELLS];
 
 void
@@ -253,7 +283,7 @@ main(void)
               Vector2 *offsets = chessTypes.offsets[activePieceType];
               int offsetNum = chessTypes.offset_sizes[activePieceType];
 
-              int numberPossibleMoves = 0;
+              int move_to_count = 0;
               for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
                 Vector2 offset = offsets[offsetIndex];
                 Vector2 move_chess_pos;
@@ -271,20 +301,21 @@ main(void)
 
                 Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, pieceSize);
 
-                if (numberPossibleMoves == active_cell_to_move_to) { // FIXME broken ?
+                if (move_to_count == active_cell_to_move_to) {
                   DrawCube(move_position, 5, 0.1f, 5, BLUE);
                 }
                 else {
                   DrawCube(move_position, 5, 0.1f, 5, GREEN);
                 }
-                numberPossibleMoves++;
+                move_to_count++;
               }
 
               switch (activePlayerState) {
                 case PIECE_MOVE:
-                  active_players.possible_move_counts[active_player] = numberPossibleMoves;
+                  active_players.possible_move_counts[active_player] = move_to_count;
                   break;
                 case PIECE_SELECTION:
+                  active_players.select_to_move_to_cells[active_player] = 0;
                   active_players.possible_move_counts[active_player] = N_PIECES;
                   break;
               }
@@ -294,67 +325,60 @@ main(void)
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
               // Control handling depends on player state
-              int possible_move_count = active_players.possible_move_counts[active_player];
-              int row_move_to_back = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
-              int row_move_to_forward = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
-              int col_move_to_forward = clamp(active_cell_to_move_to + (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
-              int col_move_to_back = clamp(active_cell_to_move_to - (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
+              int move_count = active_players.possible_move_counts[active_player];
+              int row_move_to_back = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % move_count, 0, move_count - 1);
+              int row_move_to_forward = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % move_count, 0, move_count - 1);
+              int col_move_to_forward = clamp(active_cell_to_move_to + (player_sign * 1) % move_count, 0, move_count - 1);
+              int col_move_to_back = clamp(active_cell_to_move_to - (player_sign * 1) % move_count, 0, move_count - 1);
 
-              int row_move_back = clamp(active_cell_to_move - (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
-              int row_move_forward = clamp(active_cell_to_move + (player_sign * N_ROWS) % possible_move_count, 0, possible_move_count - 1);
-              int col_move_forward = clamp(active_cell_to_move + (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
-              int col_move_back = clamp(active_cell_to_move - (player_sign * 1) % possible_move_count, 0, possible_move_count - 1);
+              int row_move_back = clamp(active_cell_to_move - (player_sign * N_ROWS) % move_count, 0, move_count - 1);
+              int row_move_forward = clamp(active_cell_to_move + (player_sign * N_ROWS) % move_count, 0, move_count - 1);
+              int col_move_forward = clamp(active_cell_to_move + (player_sign * 1) % move_count, 0, move_count - 1);
+              int col_move_back = clamp(active_cell_to_move - (player_sign * 1) % move_count, 0, move_count - 1);
 
               switch (activePlayerState) {
                 case PIECE_MOVE:
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
-                      time_since_move >= 0.2f) {
+                  if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
                     active_players.select_to_move_to_cells[active_player] = col_move_to_back;
                     time_since_move = 0.0f;
                   }
 
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
-                      time_since_move >= 0.2f) {
+                  if (left_x_right_control() && time_since_move >= 0.2f) {
                     active_players.select_to_move_to_cells[active_player] = col_move_to_forward;
                     time_since_move = 0.0f;
                   }
 
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
-                      time_since_move >= 0.2f) {
+                  if (left_y_up_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
                     active_players.select_to_move_to_cells[active_player] = row_move_to_back;
                     time_since_move = 0.0f;
                   }
 
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
-                      time_since_move >= 0.2f) {
+                  if (left_y_down_control() && time_since_move >= 0.2f) {
                     active_players.select_to_move_to_cells[active_player] = row_move_to_forward;
                     time_since_move = 0.0f;
                   }
                   break;
                 case PIECE_SELECTION:
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0) &&
-                      time_since_move >= 0.2f) {
+                  if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
                     active_players.select_to_move_cells[active_player] = col_move_back;
                     time_since_move = 0.0f;
                   }
 
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95) &&
-                      time_since_move >= 0.2f) {
+                  if (left_x_right_control() && time_since_move >= 0.2f) {
                     active_players.select_to_move_cells[active_player] = col_move_forward;
                     time_since_move = 0.0f;
                   }
 
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0) &&
-                      time_since_move >= 0.2f) {
+                  if (left_y_up_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
                     active_players.select_to_move_cells[active_player] = row_move_back;
                     time_since_move = 0.0f;
                   }
 
-                  if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f) &&
+                  if (left_y_down_control() &&
                       time_since_move >= 0.2f) {
                     active_players.select_to_move_cells[active_player] = row_move_forward;
                     time_since_move = 0.0f;
