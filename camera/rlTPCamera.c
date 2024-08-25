@@ -28,7 +28,7 @@
 *
 **********************************************************************************************/
 
-
+#include "stdio.h"
 #include "rlTPCamera.h"
 #include "raylib.h"
 #include "rlgl.h"
@@ -54,10 +54,10 @@ void rlTPCameraInit(rlTPCamera* camera, float fovY, Vector3 position)
     if (camera == NULL)
         return;
 
-    camera->ControlsKeys[0] = 'W';
-    camera->ControlsKeys[1] = 'S';
-    camera->ControlsKeys[2] = 'D';
-    camera->ControlsKeys[3] = 'A';
+    camera->ControlsKeys[0] = 'T';
+    camera->ControlsKeys[1] = 'G';
+    camera->ControlsKeys[2] = 'F';
+    camera->ControlsKeys[3] = 'H';
     camera->ControlsKeys[4] = 'E';
     camera->ControlsKeys[5] = 'Q';
     camera->ControlsKeys[6] = KEY_LEFT;
@@ -137,11 +137,33 @@ static float GetSpeedForAxis(rlTPCamera* camera, rlTPCameraControls axis, float 
         return 0;
 
     float factor = 1.0f;
+
     if (IsKeyDown(camera->ControlsKeys[SPRINT]))
         factor = 2;
 
-    if (IsKeyDown(camera->ControlsKeys[axis]))
+    if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_X) > 0.95f) && axis == TURN_RIGHT) {
+      printf("right x moved right\n");
+      return speed * GetFrameTime() * factor;
+    }
+
+    if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_X) < 0.0f) && axis == TURN_LEFT) {
+      printf("right x moved left\n");
+      return speed * GetFrameTime() * factor;
+    }
+
+    if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_Y) > 0.95f) && axis == TURN_DOWN) {
+      printf("right x moved up\n");
+      return speed * GetFrameTime() * factor;
+    }
+
+    if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_Y) < 0.0f) && axis == TURN_UP) {
+      printf("right x moved down\n");
+      return speed * GetFrameTime() * factor;
+    }
+
+    if (IsKeyDown(camera->ControlsKeys[axis])) {
         return speed * GetFrameTime() * factor;
+    }
 
     return 0.0f;
 }
@@ -174,12 +196,12 @@ void rlTPCameraUpdate(rlTPCamera* camera)
     float mouseWheelMove = GetMouseWheelMove();
 
     // Keys input detection
-    float direction[MOVE_DOWN + 1] = { -GetSpeedForAxis(camera,MOVE_FRONT,camera->MoveSpeed.z),
-                                      -GetSpeedForAxis(camera,MOVE_BACK,camera->MoveSpeed.z),
-                                      GetSpeedForAxis(camera,MOVE_RIGHT,camera->MoveSpeed.x),
-                                      GetSpeedForAxis(camera,MOVE_LEFT,camera->MoveSpeed.x),
-                                      GetSpeedForAxis(camera,MOVE_UP,camera->MoveSpeed.y),
-                                      GetSpeedForAxis(camera,MOVE_DOWN,camera->MoveSpeed.y) };
+    float direction[MOVE_DOWN + 1] = { -GetSpeedForAxis(camera, MOVE_FRONT, camera->MoveSpeed.z),
+                                      -GetSpeedForAxis(camera, MOVE_BACK, camera->MoveSpeed.z),
+                                      GetSpeedForAxis(camera, MOVE_RIGHT, camera->MoveSpeed.x),
+                                      GetSpeedForAxis(camera, MOVE_LEFT, camera->MoveSpeed.x),
+                                      GetSpeedForAxis(camera, MOVE_UP, camera->MoveSpeed.y),
+                                      GetSpeedForAxis(camera, MOVE_DOWN, camera->MoveSpeed.y) };
 
     bool useMouse = camera->UseMouse && (camera->UseMouseButton < 0 || IsMouseButtonDown(camera->UseMouseButton));
 
