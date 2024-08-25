@@ -142,22 +142,26 @@ static float GetSpeedForAxis(rlTPCamera* camera, rlTPCameraControls axis, float 
         factor = 2;
 
     if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_X) > 0.95f) && axis == TURN_RIGHT) {
-      printf("right x moved right\n");
       return speed * GetFrameTime() * factor;
     }
 
     if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_X) < 0.0f) && axis == TURN_LEFT) {
-      printf("right x moved left\n");
       return speed * GetFrameTime() * factor;
     }
 
     if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_Y) > 0.95f) && axis == TURN_DOWN) {
-      printf("right x moved up\n");
       return speed * GetFrameTime() * factor;
     }
 
     if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_Y) < 0.0f) && axis == TURN_UP) {
-      printf("right x moved down\n");
+      return speed * GetFrameTime() * factor;
+    }
+
+    if (IsGamepadButtonDown(1, GAMEPAD_BUTTON_LEFT_TRIGGER_1) && axis == MOVE_LEFT) {
+      return speed * GetFrameTime() * factor;
+    }
+
+    if (IsGamepadButtonDown(1, GAMEPAD_BUTTON_RIGHT_TRIGGER_1) && axis == MOVE_RIGHT) {
       return speed * GetFrameTime() * factor;
     }
 

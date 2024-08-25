@@ -8,28 +8,28 @@ const int NINTENDO_CONTROLLER = 1;
 
 static int
 left_x_right_control() {
-  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) > 0.95f;
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, GAMEPAD_AXIS_LEFT_X) > 0.95f;
   int key_x = IsKeyDown(KEY_D);
   return gamepad_x || key_x;
 }
 
 static int
 left_x_left_control() {
-  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_LEFT_RIGHT) < 0;
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, GAMEPAD_AXIS_LEFT_X) < 0;
   int key_x = IsKeyDown(KEY_A);
   return gamepad_x || key_x;
 }
 
 static int
 left_y_down_control() {
-  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) > 0.95f;
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, GAMEPAD_AXIS_LEFT_Y) > 0.95f;
   int key_x = IsKeyDown(KEY_S);
   return gamepad_x || key_x;
 }
 
 static int
 left_y_up_control() {
-  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, LEFT_STICK_UP_DOWN) < 0;
+  int gamepad_x = GetGamepadAxisMovement(NINTENDO_CONTROLLER, GAMEPAD_AXIS_LEFT_Y) < 0;
   int key_x = IsKeyDown(KEY_W);
   return gamepad_x || key_x;
 }
@@ -381,15 +381,6 @@ main(void)
                     time_since_move = 0.0f;
                   }
                   break;
-              }
-
-              // Camera controls
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) < 0.0f) && time_since_move >= 0.2f) {
-                time_since_move = 0.0f;
-              }
-
-              if ((GetGamepadAxisMovement(NINTENDO_CONTROLLER, RIGHT_STICK_LEFT_RIGHT) > 0.95f) && time_since_move >= 0.2f) {
-                time_since_move = 0.0f;
               }
 
               if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_LEFT_TRIGGER_2) && time_since_move >= 0.2f) {
