@@ -32,8 +32,8 @@ typedef enum ChessPiece {
 } ChessPiece;
 
 struct PiecePositions {
-  Vector3 *grid_positions;
-  Vector2 *chess_positions;
+  Vector3 *grid_positions; // where they are in 3D space
+  Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
 };
 
 struct ChessPieces {
