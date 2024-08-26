@@ -89,6 +89,12 @@ static char whitePiecesDead[N_PIECES];
 static char blackPiecesDead[N_PIECES];
 static Vector3 grid_positions[N_CELLS];
 
+// Stores a mapping of piece positions to their occupied state
+// y + (x * N_COLS) gives you the position in the array
+// maybe if the grids get really large it could just do collision detection though?
+// that would require computing hit boxes each time you move though which would be slower I think
+static char board_state[N_CELLS];
+
 static void
 loadAssets() {
     pieceModels[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
@@ -118,6 +124,14 @@ printVec3(Vector3 vec) {
   printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
 }
 
+static void
+printBoardState(char *board) {
+  for (int i = 0; i < N_CELLS; i++) {
+    printf("%d", board[i]);
+  }
+  printf("\n");
+}
+
 // Only used for debugging
 static void
 generatePositions(int pieceSize) {
@@ -145,7 +159,7 @@ calculateMove(int col, int row, int size) {
 }
 
 static struct ChessPieces
-setPieces(struct ChessPieces pieces, int size, unsigned int side) {
+setPieces(struct ChessPieces pieces, char board_state[N_CELLS], int size, unsigned int side) {
   int piece = 0;
   int start;
   int end;
@@ -164,10 +178,11 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
     for (float j = -3; j <= 4; j++) {
       Vector3 position = calculateMove(i, j, size);
       // there are always 16 pieces per player
-      if (piece >= start && piece < end) { // there must be a nicer way of checking this
-        pieces.grid_positions[piece % N_PIECES] = position; // get rid of this and just do a lookup now?
+      if (piece >= start && piece < end) {
+        pieces.grid_positions[piece % N_PIECES] = position;
         pieces.chess_positions[piece % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[piece % N_PIECES] = 0;
+        board_state[piece] = 1;
       }
       piece++;
     }
@@ -184,8 +199,6 @@ clamp(int d, int min, int max) {
 int
 main(void)
 {
-    // Initialization
-    //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
 
@@ -250,8 +263,10 @@ main(void)
       .player_states = &player_states_buf[0]
     };
 
-    setPieces(whitePieces, pieceSize, TOP_SIDE);
-    setPieces(blackPieces, pieceSize, BOTTOM_SIDE);
+    setPieces(whitePieces, board_state, pieceSize, TOP_SIDE);
+    setPieces(blackPieces, board_state, pieceSize, BOTTOM_SIDE);
+
+    printBoardState(&board_state[0]);
 
     int active_player = WHITE_PLAYER;
 
@@ -291,7 +306,9 @@ main(void)
               for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
                 Vector2 offset = offsets[offsetIndex];
                 Vector2 move_chess_pos;
+
                 // This is kind of janky, might decide to store the transformed coordinates and just look them up?
+                // on the other hand computing them is probably faster than storing them and saves memory
                 int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
                 int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
 
@@ -300,7 +317,10 @@ main(void)
                   continue;
                 }
 
-                // TODO filter out cells with active pieces on them
+                // Check if the position is occupied already, TODO only check for your own colour
+                if (board_state[new_y + (new_x * N_COLS)] == 1) {
+                  continue;
+                }
 
                 move_chess_pos.x = convertCoord(new_x, N_ROWS);
                 move_chess_pos.y = convertCoord(new_y, N_COLS);
@@ -338,6 +358,7 @@ main(void)
               switch (activePlayerState) {
                 case PIECE_MOVE:
 
+                  // Needed to know how to iterate through possible moves
                   active_players.possible_move_counts[active_player] = move_to_count;
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
@@ -407,6 +428,21 @@ main(void)
               if (select_control() && time_since_move >= 0.2f) {
                 if (activePlayerState == PIECE_MOVE) {
                   Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player];
+                  Vector2 chessPosMoveFrom = activePieces.chess_positions[active_cell_to_move];
+
+                  int x_to = convertCoord(chessPosMoveTo.x, N_ROWS);
+                  int y_to = convertCoord(chessPosMoveTo.y, N_ROWS);
+
+                  int x_from = convertCoord(chessPosMoveFrom.x, N_ROWS);
+                  int y_from = convertCoord(chessPosMoveFrom.y, N_ROWS);
+
+                  //printf("from: x = %d, y = %d, x*y = %d\n", x_from, y_from, y_from + (x_from * N_COLS));
+                  //printf("to: x = %d, y = %d, x*y = %d\n", x_to, y_to, y_to + (x_to * N_COLS));
+
+                  board_state[y_to + (x_to * N_COLS)] = 1;
+                  board_state[y_from + (x_from * N_COLS)] = 0;
+
+                  //printBoardState(&board_state[0]);
 
                   // Set the x,y coordinates first of the piece we want to move
                   activePieces.chess_positions[active_cell_to_move].x = chessPosMoveTo.x;
@@ -427,6 +463,8 @@ main(void)
               // FIXME should be the number of *live* pieces
               for (int i = 0; i < N_PIECES; i++) {
                 Vector3 gridPos = whitePieces.grid_positions[i];
+                Vector2 chessPos = whitePieces.chess_positions[i];
+
                 int pieceType = whitePieces.chess_type[i];
                 Model model = chessTypes.models[pieceType];
                 float scaling_factor = chessTypes.scaling_factors[pieceType];
@@ -436,6 +474,8 @@ main(void)
               // FIXME should be the number of *live* pieces
               for (int i = 0; i < N_PIECES; i++) {
                 Vector3 gridPos = blackPieces.grid_positions[i];
+                Vector2 chessPos = blackPieces.chess_positions[i];
+
                 int pieceType = blackPieces.chess_type[i];
                 Model model = chessTypes.models[pieceType];
                 float scaling_factor = chessTypes.scaling_factors[pieceType];
@@ -451,13 +491,9 @@ main(void)
           DrawText("Chess!", 20, 20, 5, BLACK);
 
       EndDrawing();
-        //----------------------------------------------------------------------------------
     }
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+    CloseWindow();
 
     return 0;
 }

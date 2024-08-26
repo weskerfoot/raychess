@@ -40,10 +40,10 @@ struct ChessPieces {
 
 struct ChessTypes {
   float *scaling_factors;
-  int *offset_sizes;
   Texture2D *textures;
   Model *models;
   Vector2 **offsets; // "actions" a piece type can take
+  int *offset_sizes;
 };
 
 struct Players {
