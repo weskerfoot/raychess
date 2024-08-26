@@ -253,12 +253,6 @@ main(void)
     // In some other cell based game, this could be based on a direction variable instead
     // we will want to orient the camera depending on the player as well
     int player_sign = active_player == BLACK_PLAYER ? -1 : 1;
-
-    // FIXME remove this
-    blackPieces.cells.chess_positions[1].x = convertCoord(2, 8);
-    blackPieces.cells.chess_positions[1].y = convertCoord(1, 8);
-    blackPieces.cells.grid_positions[1] = calculateMove(blackPieces.cells.chess_positions[1].x, blackPieces.cells.chess_positions[1].y, pieceSize);
-
     float time_since_move = 0;
 
     while (!WindowShouldClose()) {
