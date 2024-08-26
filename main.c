@@ -402,11 +402,8 @@ main(void)
                   activePieces.piece_poses.chess_positions[active_cell_to_move].x = chessPosMoveTo.x;
                   activePieces.piece_poses.chess_positions[active_cell_to_move].y = chessPosMoveTo.y;
 
-                  int cell_to_move_x = activePieces.piece_poses.chess_positions[active_cell_to_move].x;
-                  int cell_to_move_y = activePieces.piece_poses.chess_positions[active_cell_to_move].y;
-
                   // Then update with the calculated grid position
-                  activePieces.piece_poses.grid_positions[active_cell_to_move] = calculateMove(cell_to_move_x, cell_to_move_y, pieceSize);
+                  activePieces.piece_poses.grid_positions[active_cell_to_move] = calculateMove(chessPosMoveTo.x, chessPosMoveTo.y, pieceSize);
                   activePlayerState = active_players.player_states[active_player] = PIECE_SELECTION;
 
                 }
