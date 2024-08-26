@@ -141,6 +141,7 @@ static float GetSpeedForAxis(rlTPCamera* camera, rlTPCameraControls axis, float 
     if (IsKeyDown(camera->ControlsKeys[SPRINT]))
         factor = 2;
 
+    // FIXME pass in the controller instead of hardcoding 1
     if ((GetGamepadAxisMovement(1, GAMEPAD_AXIS_RIGHT_X) > 0.95f) && axis == TURN_RIGHT) {
       return speed * GetFrameTime() * factor;
     }
