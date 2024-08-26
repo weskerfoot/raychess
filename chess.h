@@ -31,15 +31,11 @@ typedef enum ChessPiece {
     KING = 5
 } ChessPiece;
 
-struct PiecePositions {
-  Vector3 *grid_positions; // where they are in 3D space
-  Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
-};
-
 struct ChessPieces {
   ChessPiece *chess_type;
+  Vector3 *grid_positions; // where they are in 3D space
+  Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
   char *is_dead;
-  struct PiecePositions piece_poses;
 };
 
 struct ChessTypes {
