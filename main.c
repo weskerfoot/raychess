@@ -75,7 +75,7 @@ static char whitePiecesDead[N_PIECES];
 static char blackPiecesDead[N_PIECES];
 static Vector3 grid_positions[N_CELLS];
 
-void
+static void
 loadAssets() {
     pieceModels[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
     pieceModels[KNIGHT] = LoadModel("resources/models/chess_pieces_models/knight.glb");
@@ -86,7 +86,7 @@ loadAssets() {
     return;
 }
 
-int
+static int
 convertCoord(int input, int n) {
   // n = number of cells in a row or column
   // Translate coordinates
@@ -104,7 +104,8 @@ printVec3(Vector3 vec) {
   printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
 }
 
-void
+// Only used for debugging
+static void
 generatePositions(int pieceSize) {
   int piece = 0;
   for (float i = -3; i <= 4; i++) {
@@ -129,7 +130,7 @@ calculateMove(int col, int row, int size) {
   return position;
 }
 
-struct ChessPieces
+static struct ChessPieces
 setPieces(struct ChessPieces pieces, int size, unsigned int side) {
   int piece = 0;
   int start;
@@ -160,7 +161,7 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
   return pieces;
 }
 
-int
+static int
 clamp(int d, int min, int max) {
   const int t = d < min ? min : d;
   return t > max ? max : t;
