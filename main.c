@@ -150,8 +150,8 @@ setPieces(struct ChessPieces pieces, int size, unsigned int side) {
       Vector3 position = calculateMove(i, j, size);
       // there are always 16 pieces per player
       if (piece >= start && piece < end) { // there must be a nicer way of checking this
-        pieces.cells.grid_positions[piece % N_PIECES] = position; // get rid of this and just do a lookup now?
-        pieces.cells.chess_positions[piece % N_PIECES] = (Vector2){i, j};
+        pieces.piece_poses.grid_positions[piece % N_PIECES] = position; // get rid of this and just do a lookup now?
+        pieces.piece_poses.chess_positions[piece % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[piece % N_PIECES] = 0;
       }
       piece++;
@@ -197,25 +197,25 @@ main(void)
     };
 
     // Cell type stuff
-    struct Cells white_cells = {
+    struct PiecePositions white_cells = {
       .grid_positions = &whiteGridPositions[0],
       .chess_positions = &whiteChessPositions[0],
     };
 
-    struct Cells black_cells = {
+    struct PiecePositions black_cells = {
       .grid_positions = &blackGridPositions[0],
       .chess_positions = &blackChessPositions[0],
     };
 
     // Gameplay piece stuff
     struct ChessPieces whitePieces = {
-      .cells = white_cells,
+      .piece_poses = white_cells,
       .is_dead = &whitePiecesDead[0],
       .chess_type = &whiteStartingPieces[0]
     };
 
     struct ChessPieces blackPieces = {
-      .cells = black_cells,
+      .piece_poses = black_cells,
       .is_dead = &blackPiecesDead[0],
       .chess_type = &blackStartingPieces[0]
     };
@@ -272,7 +272,7 @@ main(void)
               int active_cell_to_move = active_players.select_to_move_cells[active_player];
               int active_cell_to_move_to = active_players.select_to_move_to_cells[active_player];
               int activePieceType = activePieces.chess_type[active_cell_to_move];
-              Vector2 active_chess_pos = activePieces.cells.chess_positions[active_cell_to_move];
+              Vector2 active_chess_pos = activePieces.piece_poses.chess_positions[active_cell_to_move];
 
               Vector2 *offsets = chessTypes.offsets[activePieceType];
               int offsetNum = chessTypes.offset_sizes[activePieceType];
@@ -316,7 +316,7 @@ main(void)
                   break;
               }
 
-              Vector3 highlight_pos = activePieces.cells.grid_positions[active_cell_to_move];
+              Vector3 highlight_pos = activePieces.piece_poses.grid_positions[active_cell_to_move];
               highlight_pos.y = 0; // Setting the height of it
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
@@ -397,13 +397,16 @@ main(void)
               if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_RIGHT_FACE_UP) && time_since_move >= 0.2f) {
                 if (activePlayerState == PIECE_MOVE) {
                   Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player];
-                  activePieces.cells.chess_positions[active_cell_to_move].x = chessPosMoveTo.x;
-                  activePieces.cells.chess_positions[active_cell_to_move].y = chessPosMoveTo.y;
 
-                  int cell_to_move_x = activePieces.cells.chess_positions[active_cell_to_move].x;
-                  int cell_to_move_y = activePieces.cells.chess_positions[active_cell_to_move].y;
-                  activePieces.cells.grid_positions[active_cell_to_move] = calculateMove(cell_to_move_x, cell_to_move_y, pieceSize);
+                  // Set the x,y coordinates first of the piece we want to move
+                  activePieces.piece_poses.chess_positions[active_cell_to_move].x = chessPosMoveTo.x;
+                  activePieces.piece_poses.chess_positions[active_cell_to_move].y = chessPosMoveTo.y;
 
+                  int cell_to_move_x = activePieces.piece_poses.chess_positions[active_cell_to_move].x;
+                  int cell_to_move_y = activePieces.piece_poses.chess_positions[active_cell_to_move].y;
+
+                  // Then update with the calculated grid position
+                  activePieces.piece_poses.grid_positions[active_cell_to_move] = calculateMove(cell_to_move_x, cell_to_move_y, pieceSize);
                   activePlayerState = active_players.player_states[active_player] = PIECE_SELECTION;
 
                 }

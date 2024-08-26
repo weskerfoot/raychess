@@ -31,7 +31,7 @@ typedef enum ChessPiece {
     KING = 5
 } ChessPiece;
 
-struct Cells {
+struct PiecePositions {
   Vector3 *grid_positions;
   Vector2 *chess_positions;
 };
@@ -39,7 +39,7 @@ struct Cells {
 struct ChessPieces {
   ChessPiece *chess_type;
   char *is_dead;
-  struct Cells cells;
+  struct PiecePositions piece_poses;
 };
 
 struct ChessTypes {
