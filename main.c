@@ -253,6 +253,7 @@ main(void)
     // In some other cell based game, this could be based on a direction variable instead
     // we will want to orient the camera depending on the player as well
     int player_sign = active_player == BLACK_PLAYER ? -1 : 1;
+
     float time_since_move = 0;
 
     while (!WindowShouldClose()) {
@@ -296,6 +297,7 @@ main(void)
 
                 if (move_to_count == active_cell_to_move_to) {
                   DrawCube(move_position, 5, 0.1f, 5, BLUE);
+                  // Sets the chess position of the cell this player is possibly moving to
                   active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
                 }
                 else {
@@ -401,6 +403,8 @@ main(void)
                   int cell_to_move_x = activePieces.cells.chess_positions[active_cell_to_move].x;
                   int cell_to_move_y = activePieces.cells.chess_positions[active_cell_to_move].y;
                   activePieces.cells.grid_positions[active_cell_to_move] = calculateMove(cell_to_move_x, cell_to_move_y, pieceSize);
+
+                  activePlayerState = active_players.player_states[active_player] = PIECE_SELECTION;
 
                 }
                 time_since_move = 0.0f;
