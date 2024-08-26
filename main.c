@@ -303,16 +303,6 @@ main(void)
                 move_to_count++;
               }
 
-              switch (activePlayerState) {
-                case PIECE_MOVE:
-                  active_players.possible_move_counts[active_player] = move_to_count;
-                  break;
-                case PIECE_SELECTION:
-                  active_players.select_to_move_to_cells[active_player] = 0;
-                  active_players.possible_move_counts[active_player] = N_PIECES;
-                  break;
-              }
-
               Vector3 highlight_pos = activePieces.grid_positions[active_cell_to_move];
               highlight_pos.y = 0; // Setting the height of it
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
@@ -332,6 +322,9 @@ main(void)
               // Handle cell movement for different states here
               switch (activePlayerState) {
                 case PIECE_MOVE:
+
+                  active_players.possible_move_counts[active_player] = move_to_count;
+
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
                     active_players.select_to_move_to_cells[active_player] = col_move_to_back;
@@ -355,6 +348,10 @@ main(void)
                   }
                   break;
                 case PIECE_SELECTION:
+
+                  active_players.select_to_move_to_cells[active_player] = 0;
+                  active_players.possible_move_counts[active_player] = N_PIECES;
+
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
                     active_players.select_to_move_cells[active_player] = col_move_back;
