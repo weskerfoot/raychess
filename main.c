@@ -231,11 +231,13 @@ main(void)
     int select_to_move_cells_buf[2] = {0, 0};
     int possible_move_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
     int select_to_move_to_cells_buf[2] = {0, 0};
+    Vector2 select_to_move_to_chess_positions_buf[2] = {{0},{0}};
 
     struct Players active_players = {
       .score = &score[0],
       .select_to_move_cells = &select_to_move_cells_buf[0],
       .select_to_move_to_cells = &select_to_move_to_cells_buf[0],
+      .select_to_move_to_chess_positions = &select_to_move_to_chess_positions_buf[0],
       .possible_move_counts = &possible_move_counts_buf[0],
       .player_type = &active_players_buf[0],
       .pieces = &pieces[0],
@@ -300,6 +302,7 @@ main(void)
 
                 if (move_to_count == active_cell_to_move_to) {
                   DrawCube(move_position, 5, 0.1f, 5, BLUE);
+                  active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
                 }
                 else {
                   DrawCube(move_position, 5, 0.1f, 5, GREEN);
@@ -333,6 +336,7 @@ main(void)
               int col_move_forward = clamp(active_cell_to_move + (player_sign * 1) % move_count, 0, move_count - 1);
               int col_move_back = clamp(active_cell_to_move - (player_sign * 1) % move_count, 0, move_count - 1);
 
+              // Handle cell movement for different states here
               switch (activePlayerState) {
                 case PIECE_MOVE:
                   if (left_x_left_control() && time_since_move >= 0.2f) {
@@ -383,12 +387,27 @@ main(void)
                   break;
               }
 
+              // Handle switching modes here
               if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_LEFT_TRIGGER_2) && time_since_move >= 0.2f) {
                 if (activePlayerState == PIECE_MOVE) {
                   activePlayerState = active_players.player_states[active_player] = PIECE_SELECTION;
                 }
                 else {
                   activePlayerState = active_players.player_states[active_player] = PIECE_MOVE;
+                }
+                time_since_move = 0.0f;
+              }
+
+              if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_RIGHT_FACE_UP) && time_since_move >= 0.2f) {
+                if (activePlayerState == PIECE_MOVE) {
+                  Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player];
+                  activePieces.cells.chess_positions[active_cell_to_move].x = chessPosMoveTo.x;
+                  activePieces.cells.chess_positions[active_cell_to_move].y = chessPosMoveTo.y;
+
+                  int cell_to_move_x = activePieces.cells.chess_positions[active_cell_to_move].x;
+                  int cell_to_move_y = activePieces.cells.chess_positions[active_cell_to_move].y;
+                  activePieces.cells.grid_positions[active_cell_to_move] = calculateMove(cell_to_move_x, cell_to_move_y, pieceSize);
+
                 }
                 time_since_move = 0.0f;
               }

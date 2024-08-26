@@ -54,6 +54,7 @@ struct Players {
   int *score;
   int *select_to_move_cells; // tracks which cell you / a piece is actually on
   int *select_to_move_to_cells; // tracks which cell you're thinking of moving to
+  Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
   int *possible_move_counts; // how many cells they could select currently
   PlayerType *player_type;
   PlayerState *player_states;
@@ -70,28 +71,38 @@ Vector2 pawnOffsets[] = {
 
 // Knight move offsets
 Vector2 knightOffsets[] = {
-    {1, 2}, {-1, 2}, {1, -2}, {-1, -2},
-    {2, 1}, {-2, 1}, {2, -1}, {-2, -1}
+    {1, -2}, {-1, -2}, // Leftmost columns
+    {2, -1}, {-2, -1}, // Next from left
+    {2, 1}, {-2, 1},   // Next from left
+    {1, 2}, {-1, 2}    // Rightmost columns
 };
 
 // Bishop move offsets (unbounded)
 Vector2 bishopOffsets[] = {
-    {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
+    {1, -1}, {-1, -1}, // Leftmost columns
+    {1, 1}, {-1, 1}    // Rightmost columns
 };
 
 // Rook move offsets (unbounded)
 Vector2 rookOffsets[] = {
-    {0, 1}, {0, -1}, {1, 0}, {-1, 0}
+    {1, 0}, {-1, 0}, // Horizontal moves (rows)
+    {0, -1}, {0, 1}  // Vertical moves (columns)
 };
 
-// Queen move offsets (combines rook and bishop moves, unbounded)
+
 Vector2 queenOffsets[] = {
-    {0, 1}, {0, -1}, {1, 0}, {-1, 0}, // Rook moves
-    {1, 1}, {-1, 1}, {1, -1}, {-1, -1} // Bishop moves
+    {0, -1},  // Vertical move in the leftmost column
+    {-1, -1}, {1, -1}, // Diagonals in the leftmost columns (closer to the edge)
+    {-1, 0}, {1, 0},  // Horizontal moves (rows)
+    {-1, 1}, {1, 1},  // Diagonals in the rightmost columns (closer to the edge)
+    {0, 1}   // Vertical move in the rightmost column
 };
 
-// King move offsets
 Vector2 kingOffsets[] = {
-    {0, 1}, {0, -1}, {1, 0}, {-1, 0},
-    {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
+    {0, -1},           // Vertical move in the leftmost column
+    {-1, -1}, {1, -1}, // Diagonals in the leftmost columns (closer to the edge)
+    {-1, 0}, {1, 0},   // Horizontal moves (rows)
+    {-1, 1}, {1, 1},   // Diagonals in the rightmost columns (closer to the edge)
+    {0, 1}             // Vertical move in the rightmost column
 };
+
