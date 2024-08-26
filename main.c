@@ -34,6 +34,20 @@ left_y_up_control() {
   return gamepad_x || key_x;
 }
 
+static int
+trigger_control() {
+  int gamepad_trigger = IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_LEFT_TRIGGER_2);
+  int key_trigger = IsKeyDown(KEY_X);
+  return gamepad_trigger || key_trigger;
+}
+
+static int
+select_control() {
+  int gamepad_control = IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_RIGHT_FACE_UP);
+  int key_control = IsKeyDown(KEY_M);
+  return gamepad_control || key_control;
+}
+
 static ChessPiece whiteStartingPieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // Second row
@@ -379,7 +393,7 @@ main(void)
               }
 
               // Handle switching modes here
-              if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_LEFT_TRIGGER_2) && time_since_move >= 0.2f) {
+              if (trigger_control() && time_since_move >= 0.2f) {
                 if (activePlayerState == PIECE_MOVE) {
                   activePlayerState = active_players.player_states[active_player] = PIECE_SELECTION;
                 }
@@ -390,7 +404,7 @@ main(void)
               }
 
               // Handle moving a piece to a new cell here
-              if (IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_RIGHT_FACE_UP) && time_since_move >= 0.2f) {
+              if (select_control() && time_since_move >= 0.2f) {
                 if (activePlayerState == PIECE_MOVE) {
                   Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player];
 
