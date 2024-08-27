@@ -31,11 +31,16 @@ typedef enum ChessPiece {
     KING = 5
 } ChessPiece;
 
+typedef enum ChessPieceMovement {
+  NORMAL_MOVEMENT = 0,
+  UNBOUNDED = 1
+} ChessPieceMovement;
+
 struct ChessPieces {
   ChessPiece *chess_type;
   Vector3 *grid_positions; // where they are in 3D space
   Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
-  char *is_dead;
+  uint8_t *is_dead;
 };
 
 struct ChessTypes {
@@ -44,6 +49,7 @@ struct ChessTypes {
   Model *models;
   Vector2 **offsets; // "actions" a piece type can take
   int *offset_sizes;
+  ChessPieceMovement *movement_types;
 };
 
 struct Players {
@@ -85,20 +91,20 @@ Vector2 rookOffsets[] = {
     {0, -1}, {0, 1}  // Vertical moves (columns)
 };
 
-
+// Unbounded
 Vector2 queenOffsets[] = {
-    {0, -1},  // Vertical move in the leftmost column
-    {-1, -1}, {1, -1}, // Diagonals in the leftmost columns (closer to the edge)
-    {-1, 0}, {1, 0},  // Horizontal moves (rows)
-    {-1, 1}, {1, 1},  // Diagonals in the rightmost columns (closer to the edge)
-    {0, 1}   // Vertical move in the rightmost column
+    {0, -1},
+    {-1, -1}, {1, -1},
+    {-1, 0}, {1, 0},
+    {-1, 1}, {1, 1},
+    {0, 1}
 };
 
 Vector2 kingOffsets[] = {
-    {0, -1},           // Vertical move in the leftmost column
-    {-1, -1}, {1, -1}, // Diagonals in the leftmost columns (closer to the edge)
-    {-1, 0}, {1, 0},   // Horizontal moves (rows)
-    {-1, 1}, {1, 1},   // Diagonals in the rightmost columns (closer to the edge)
-    {0, 1}             // Vertical move in the rightmost column
+    {0, -1},
+    {-1, -1}, {1, -1},
+    {-1, 0}, {1, 0},
+    {-1, 1}, {1, 1},
+    {0, 1}
 };
 
