@@ -261,8 +261,6 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
       float scaled_x = current_x;
       float scaled_y = current_y;
 
-      int stop_moving = 0;
-
       while ((scaled_x >= 0 && scaled_x < N_ROWS) &&
              (scaled_y >= 0 && scaled_y < N_COLS)) {
           int converted_x = convertCoord(scaled_x, N_ROWS);
@@ -272,16 +270,14 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
           scaled_x = scaled_x + offset.x;
           scaled_y = scaled_y + offset.y;
 
-          if (stop_moving) {
-            continue;
-          }
-
           if (shouldSkipCell(convertCoord(converted_x, N_ROWS), convertCoord(converted_y, N_COLS), player_sign, board_state)) {
             // need to move the position regardless
             move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
             move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+
+            // Check if it's the origin piece first
             if (!((scaled_x - offset.x) == current_x && (scaled_y - offset.y) == current_y)) {
-              stop_moving = 1;
+              break;
             }
             continue;
           }
