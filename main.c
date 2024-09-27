@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "math.h"
 #include "stdio.h"
+#include "assert.h"
 #include "chess.h"
 #include "camera/rlTPCamera.h"
 
@@ -103,6 +104,7 @@ static Vector3 grid_positions[N_CELLS];
 // y + (x * N_COLS) gives you the position in the array
 // maybe if the grids get really large it could just do collision detection though?
 // that would require computing hit boxes each time you move though which would be slower I think
+// not using a multi-dimensional array, might be resizable later
 static uint8_t board_state[N_CELLS];
 
 static void
@@ -120,6 +122,7 @@ static int
 convertCoord(int input, int n) {
   // n = number of cells in a row or column
   // Translate coordinates
+  assert (n > 0);
   int half = n / 2;
   return half - input;
 }
@@ -162,9 +165,14 @@ static Vector3
 calculateMove(int col, int row, int size) {
   // Given a column and row, and a tile size
   // calculate a board position
+  assert (size != 0);
   Vector3 position = { (size*row) - (size/2.0),
                        0.0f,
                        (size*col) - (size/2.0)}; // 4 = half the grid from center
+  assert (fpclassify(position.x) == FP_NORMAL || fpclassify(position.x) == FP_ZERO);
+  assert (fpclassify(position.y) == FP_NORMAL || fpclassify(position.y) == FP_ZERO);
+  assert (fpclassify(position.z) == FP_NORMAL || fpclassify(position.z) == FP_ZERO);
+
   return position;
 }
 
@@ -204,7 +212,6 @@ static int
 shouldSkipCell(int new_x,
                int new_y,
                int player_sign,
-               Vector2 offset,
                uint8_t board_state[N_CELLS]) {
   // Filter out moves off the end of the board
   if (new_x < 0 || new_y < 0 || new_x >= N_ROWS || new_y >= N_COLS) {
@@ -231,21 +238,70 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
                          struct ChessTypes chess_types) {
   int move_to_count = 0;
 
-  int activePieceType = active_pieces.chess_type[active_cell_to_move];
+  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
 
-  ChessPieceMovement movement_type = chess_types.movement_types[activePieceType];
+  ChessPieceMovement movement_type = chess_types.movement_types[active_piece_type];
 
-  Vector2 *offsets = chess_types.offsets[activePieceType];
-  int offsetNum = chess_types.offset_sizes[activePieceType];
+  Vector2 *offsets = chess_types.offsets[active_piece_type];
+  int offsetNum = chess_types.offset_sizes[active_piece_type];
 
   for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
     Vector2 offset = offsets[offsetIndex];
+    Vector2 unboundedOffset;
+
     Vector2 move_chess_pos;
 
-    int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
-    int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
+    int current_x = convertCoord(active_chess_pos.x, N_ROWS);
+    int current_y = convertCoord(active_chess_pos.y, N_COLS);
 
-    if (shouldSkipCell(new_x, new_y, player_sign, offset, board_state)) {
+    int new_x = current_x + (offset.x * player_sign);
+    int new_y = current_y + (offset.y * player_sign);
+
+    unboundedOffset.y = offset.y * N_COLS;
+    unboundedOffset.x = offset.x * N_ROWS;
+
+    printf("calculated unbounded = "); printVec2(unboundedOffset);
+
+    if (unboundedOffset.x != 0.0f || unboundedOffset.y != 0.0f) {
+
+      float scaled_x = current_x;
+      float scaled_y = current_y;
+
+      while ((scaled_x >= 0 && scaled_x < N_ROWS) &&
+             (scaled_y >= 0 && scaled_y < N_COLS)) {
+          int converted_x = convertCoord(scaled_x, N_ROWS);
+          int converted_y = convertCoord(scaled_y, N_COLS);
+          Vector3 scaled_pos = calculateMove(converted_x, converted_y, piece_size);
+
+          scaled_x = scaled_x + offset.x;
+          scaled_y = scaled_y + offset.y;
+
+          if (shouldSkipCell(convertCoord(converted_x, N_ROWS), convertCoord(converted_y, N_COLS), player_sign, board_state)) {
+            move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
+            move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+            continue;
+          }
+
+          // mapping move to count to active cell to move to
+          // shouldn't this map to it even if we skipped one?
+          if (move_to_count == active_cell_to_move_to) {
+            DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
+            active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
+          }
+          else {
+            DrawCube(scaled_pos, 5, 0.1f, 5, GREEN);
+          }
+
+          move_to_count++;
+          move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
+          move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+
+      }
+    }
+
+    // Note x and y will never both be 0
+
+    if (shouldSkipCell(new_x, new_y, player_sign, board_state)) {
       continue;
     }
 
@@ -264,6 +320,8 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
     move_to_count++;
   }
+
+  assert (move_to_count >= 0);
   return move_to_count;
 }
 
@@ -279,12 +337,12 @@ handleMovements(struct ChessPieces active_pieces,
                 struct ChessTypes chess_types) {
   int move_to_count = 0;
 
-  int activePieceType = active_pieces.chess_type[active_cell_to_move];
+  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
 
-  ChessPieceMovement movement_type = chess_types.movement_types[activePieceType];
+  ChessPieceMovement movement_type = chess_types.movement_types[active_piece_type];
 
-  Vector2 *offsets = chess_types.offsets[activePieceType];
-  int offsetNum = chess_types.offset_sizes[activePieceType];
+  Vector2 *offsets = chess_types.offsets[active_piece_type];
+  int offsetNum = chess_types.offset_sizes[active_piece_type];
 
   // This loop handles highlighting the possible cells the currently selected piece could move to
   // It also sets select_to_move_to_chess_positions for the current player
@@ -298,7 +356,7 @@ handleMovements(struct ChessPieces active_pieces,
     int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
     int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
 
-    if (shouldSkipCell(new_x, new_y, player_sign, offset, board_state)) {
+    if (shouldSkipCell(new_x, new_y, player_sign, board_state)) {
       continue;
     }
 
@@ -421,29 +479,40 @@ main(void)
 
               struct ChessPieces active_pieces = active_players.pieces[active_player];
 
+              // Get the IDs of the cell to move and the possible cell to move to
               int active_player_state = active_players.player_states[active_player];
               int active_cell_to_move = active_players.select_to_move_cells[active_player];
               int active_cell_to_move_to = active_players.select_to_move_to_cells[active_player];
               Vector2 active_chess_pos = active_pieces.chess_positions[active_cell_to_move];
 
+              // TODO these are accessed again in the handleMovements functions so maybe those should just be one function?
+              int active_piece_type = active_pieces.chess_type[active_cell_to_move];
+              ChessPieceMovement active_piece_movement_type = chess_types.movement_types[active_piece_type];
+
+              // Get the position of the currently selected cell and highlight it red
               Vector3 highlight_pos = active_pieces.grid_positions[active_cell_to_move];
               highlight_pos.y = 0; // Setting the height of it
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
-              // Control handling depends on player state
+              // These are set by the controls to say which cell to move to
               int move_count = active_players.possible_move_counts[active_player];
+              assert (move_count > 0);
               int row_move_to_back = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % move_count, 0, move_count - 1);
               int row_move_to_forward = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % move_count, 0, move_count - 1);
               int col_move_to_forward = clamp(active_cell_to_move_to + (player_sign * 1) % move_count, 0, move_count - 1);
               int col_move_to_back = clamp(active_cell_to_move_to - (player_sign * 1) % move_count, 0, move_count - 1);
 
+              // These are set by the controls to say which cell to select
               int row_move_back = clamp(active_cell_to_move - (player_sign * N_ROWS) % move_count, 0, move_count - 1);
               int row_move_forward = clamp(active_cell_to_move + (player_sign * N_ROWS) % move_count, 0, move_count - 1);
               int col_move_forward = clamp(active_cell_to_move + (player_sign * 1) % move_count, 0, move_count - 1);
               int col_move_back = clamp(active_cell_to_move - (player_sign * 1) % move_count, 0, move_count - 1);
 
               // FIXME reduce number of parameters
-              int move_to_count = handleMovements(active_pieces,
+              int move_to_count = 0;
+              switch (active_piece_movement_type) {
+                case NORMAL_MOVEMENT:
+                  move_to_count = handleMovements(active_pieces,
                                                   piece_size,
                                                   active_cell_to_move_to,
                                                   active_cell_to_move,
@@ -452,6 +521,20 @@ main(void)
                                                   active_players,
                                                   active_chess_pos,
                                                   chess_types);
+                  break;
+                case UNBOUNDED:
+                  move_to_count = handleMovementsUnbounded(active_pieces,
+                                                           piece_size,
+                                                           active_cell_to_move_to,
+                                                           active_cell_to_move,
+                                                           active_player,
+                                                           player_sign,
+                                                           active_players,
+                                                           active_chess_pos,
+                                                           chess_types);
+                  break;
+
+              }
 
               // Handle cell movement for different states here
               switch (active_player_state) {
