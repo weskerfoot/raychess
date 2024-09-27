@@ -98,7 +98,6 @@ static Vector2 whiteChessPositions[N_PIECES];
 static Vector2 blackChessPositions[N_PIECES];
 static uint8_t white_piecesDead[N_PIECES];
 static uint8_t black_piecesDead[N_PIECES];
-static Vector3 grid_positions[N_CELLS];
 
 // Stores a mapping of piece positions to their occupied state
 // y + (x * N_COLS) gives you the position in the array
@@ -143,22 +142,6 @@ printBoardState(uint8_t *board) {
     printf("%d", board[i]);
   }
   printf("\n");
-}
-
-// Only used for debugging
-static void
-generatePositions(int piece_size) {
-  int piece = 0;
-  for (float i = -3; i <= 4; i++) {
-    for (float j = -3; j <= 4; j++) {
-      Vector3 position = calculateMove(i, j, piece_size);
-      // there are always 16 pieces per player
-      if (piece < N_CELLS) {
-        grid_positions[piece] = position;
-      }
-      piece++;
-    }
-  }
 }
 
 static Vector3
@@ -239,8 +222,6 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
   int move_to_count = 0;
 
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
-
-  ChessPieceMovement movement_type = chess_types.movement_types[active_piece_type];
 
   Vector2 *offsets = chess_types.offsets[active_piece_type];
   int offsetNum = chess_types.offset_sizes[active_piece_type];
@@ -335,8 +316,6 @@ handleMovements(struct ChessPieces active_pieces,
   int move_to_count = 0;
 
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
-
-  ChessPieceMovement movement_type = chess_types.movement_types[active_piece_type];
 
   Vector2 *offsets = chess_types.offsets[active_piece_type];
   int offsetNum = chess_types.offset_sizes[active_piece_type];
