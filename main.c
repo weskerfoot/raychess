@@ -247,7 +247,6 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
   for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
     Vector2 offset = offsets[offsetIndex];
-    Vector2 unboundedOffset;
 
     Vector2 move_chess_pos;
 
@@ -257,15 +256,12 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
     int new_x = current_x + (offset.x * player_sign);
     int new_y = current_y + (offset.y * player_sign);
 
-    unboundedOffset.y = offset.y * N_COLS;
-    unboundedOffset.x = offset.x * N_ROWS;
-
-    printf("calculated unbounded = "); printVec2(unboundedOffset);
-
-    if (unboundedOffset.x != 0.0f || unboundedOffset.y != 0.0f) {
+    if ((offset.x * N_ROWS) != 0.0f || (offset.y * N_COLS) != 0.0f) {
 
       float scaled_x = current_x;
       float scaled_y = current_y;
+
+      int stop_moving = 0;
 
       while ((scaled_x >= 0 && scaled_x < N_ROWS) &&
              (scaled_y >= 0 && scaled_y < N_COLS)) {
@@ -276,14 +272,20 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
           scaled_x = scaled_x + offset.x;
           scaled_y = scaled_y + offset.y;
 
-          if (shouldSkipCell(convertCoord(converted_x, N_ROWS), convertCoord(converted_y, N_COLS), player_sign, board_state)) {
-            move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
-            move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+          if (stop_moving) {
             continue;
           }
 
-          // mapping move to count to active cell to move to
-          // shouldn't this map to it even if we skipped one?
+          if (shouldSkipCell(convertCoord(converted_x, N_ROWS), convertCoord(converted_y, N_COLS), player_sign, board_state)) {
+            // need to move the position regardless
+            move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
+            move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+            if (!((scaled_x - offset.x) == current_x && (scaled_y - offset.y) == current_y)) {
+              stop_moving = 1;
+            }
+            continue;
+          }
+
           if (move_to_count == active_cell_to_move_to) {
             DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
             active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
@@ -295,7 +297,6 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
           move_to_count++;
           move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
           move_chess_pos.y = convertCoord(scaled_y, N_COLS);
-
       }
     }
 
@@ -458,7 +459,7 @@ main(void)
 
     printBoardState(&board_state[0]);
 
-    int active_player = WHITE_PLAYER;
+    int active_player = BLACK_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
     // In some other cell based game, this could be based on a direction variable instead
