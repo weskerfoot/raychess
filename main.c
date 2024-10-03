@@ -60,6 +60,16 @@ static ChessPiece blackStartingPieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN           // First row
 };
 
+static Color blackColors[N_PIECES] = {
+  BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK,
+  BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK
+};
+
+static Color whiteColors[N_PIECES] = {
+  WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE,
+  WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
+};
+
 // allocate buffers for game data
 static Texture2D pieceTextures[6];
 static Model pieceModels[6];
@@ -219,6 +229,8 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
                          struct Players active_players,
                          Vector2 active_chess_pos,
                          struct ChessTypes chess_types) {
+  // FIXME get this in here or pass it in
+  //ChessPieceMovement active_piece_movement_type = chess_types.movement_types[active_piece_type];
   int move_to_count = 0;
 
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
@@ -226,6 +238,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
   Vector2 *offsets = chess_types.offsets[active_piece_type];
   int offsetNum = chess_types.offset_sizes[active_piece_type];
 
+  // FIXME check if it should be scaled here
   for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
     Vector2 offset = offsets[offsetIndex];
 
@@ -395,17 +408,21 @@ main(void)
       .grid_positions = &whiteGridPositions[0],
       .chess_positions = &whiteChessPositions[0],
       .is_dead = &white_piecesDead[0],
-      .chess_type = &whiteStartingPieces[0]
+      .chess_type = &whiteStartingPieces[0],
+      .colors = &whiteColors[0] // later on, a player could have differently colored pieces
     };
 
     struct ChessPieces black_pieces = {
       .grid_positions = &blackGridPositions[0],
       .chess_positions = &blackChessPositions[0],
       .is_dead = &black_piecesDead[0],
-      .chess_type = &blackStartingPieces[0]
+      .chess_type = &blackStartingPieces[0],
+      .colors = &blackColors[0] // later on, a player could have differently colored pieces
     };
 
+    // TODO, load these from data, set the size when it loads the players in a level
     struct ChessPieces pieces[2] = {white_pieces, black_pieces};
+    int num_players = (sizeof pieces) / (sizeof (struct ChessPieces));
 
     // Player type stuff
 
@@ -618,24 +635,23 @@ main(void)
 
               time_since_move += GetFrameTime();
 
-              // FIXME should be the number of *live* pieces
-              for (int i = 0; i < N_PIECES; i++) {
-                Vector3 grid_pos = white_pieces.grid_positions[i];
+              for (int player_index = 0; player_index < num_players; player_index++) {
+                struct ChessPieces player_pieces = pieces[player_index];
+                for (int i = 0; i < N_PIECES; i++) {
+                  Vector3 grid_pos = player_pieces.grid_positions[i];
 
-                int piece_type = white_pieces.chess_type[i];
-                Model model = chess_types.models[piece_type];
-                float scaling_factor = chess_types.scaling_factors[piece_type];
-                DrawModel(model, grid_pos, scaling_factor, WHITE);
-              }
+                  int piece_type = player_pieces.chess_type[i];
+                  int is_dead = player_pieces.is_dead[i];
+                  Color piece_color = player_pieces.colors[i];
 
-              // FIXME should be the number of *live* pieces
-              for (int i = 0; i < N_PIECES; i++) {
-                Vector3 grid_pos = black_pieces.grid_positions[i];
+                  if (is_dead) {
+                    continue;
+                  }
 
-                int piece_type = black_pieces.chess_type[i];
-                Model model = chess_types.models[piece_type];
-                float scaling_factor = chess_types.scaling_factors[piece_type];
-                DrawModel(model, grid_pos, scaling_factor, BLACK);
+                  Model model = chess_types.models[piece_type];
+                  float scaling_factor = chess_types.scaling_factors[piece_type];
+                  DrawModel(model, grid_pos, scaling_factor, piece_color);
+                }
               }
 
               DrawGrid(N_ROWS, 5.0f);

@@ -41,6 +41,7 @@ struct ChessPieces {
   Vector3 *grid_positions; // where they are in 3D space
   Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
   uint8_t *is_dead;
+  Color *colors;
 };
 
 struct ChessTypes {
@@ -56,8 +57,9 @@ struct Players {
   int *score;
   int *select_to_move_cells; // tracks which cell you / a piece is actually on
   int *select_to_move_to_cells; // tracks which cell you're thinking of moving to
-  Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
+  int *live_piece_counts;
   int *possible_move_counts; // how many cells they could select currently
+  Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
   PlayerType *player_type;
   PlayerState *player_states;
   struct ChessPieces *pieces;
