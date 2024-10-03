@@ -638,18 +638,19 @@ main(void)
               for (int player_index = 0; player_index < num_players; player_index++) {
                 struct ChessPieces player_pieces = pieces[player_index];
                 for (int i = 0; i < N_PIECES; i++) {
-                  Vector3 grid_pos = player_pieces.grid_positions[i];
-
-                  int piece_type = player_pieces.chess_type[i];
                   int is_dead = player_pieces.is_dead[i];
-                  Color piece_color = player_pieces.colors[i];
 
                   if (is_dead) {
                     continue;
                   }
 
+                  Vector3 grid_pos = player_pieces.grid_positions[i];
+                  Color piece_color = player_pieces.colors[i];
+
+                  int piece_type = player_pieces.chess_type[i];
                   Model model = chess_types.models[piece_type];
                   float scaling_factor = chess_types.scaling_factors[piece_type];
+
                   DrawModel(model, grid_pos, scaling_factor, piece_color);
                 }
               }
