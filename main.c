@@ -202,17 +202,17 @@ setPieces(struct ChessPieces pieces, uint8_t board_state[N_CELLS], int size, uns
 }
 
 static int
-shouldSkipCell(int new_x,
-               int new_y,
+shouldSkipCell(int x,
+               int y,
                int player_sign,
                uint8_t board_state[N_CELLS]) {
   // Filter out moves off the end of the board
-  if (new_x < 0 || new_y < 0 || new_x >= N_ROWS || new_y >= N_COLS) {
+  if (x < 0 || y < 0 || x >= N_ROWS || y >= N_COLS) {
     return 1;
   }
 
   // Check if the position is occupied already, TODO only check for your own colour
-  if (board_state[new_y + (new_x * N_COLS)] == 1) {
+  if (board_state[y + (x * N_COLS)] == 1) {
     return 1;
   }
 
@@ -340,8 +340,6 @@ handleMovements(struct ChessPieces active_pieces,
     Vector2 offset = offsets[offsetIndex];
     Vector2 move_chess_pos;
 
-    // This is kind of janky, might decide to store the transformed coordinates and just look them up?
-    // on the other hand computing them is probably faster than storing them and saves memory
     int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
     int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
 
