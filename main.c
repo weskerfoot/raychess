@@ -172,7 +172,11 @@ calculateMove(int col, int row, int size) {
 }
 
 static struct ChessPieces
-setPieces(struct ChessPieces pieces, struct Cells cells, int size, unsigned int side) {
+setPieces(struct ChessPieces pieces,
+          struct Cells cells,
+          int size,
+          unsigned int side,
+          int player_type) {
   int piece = 0;
   int start;
   int end;
@@ -196,6 +200,7 @@ setPieces(struct ChessPieces pieces, struct Cells cells, int size, unsigned int 
         pieces.chess_positions[piece % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[piece % N_PIECES] = 0;
         cells.occupied_states[piece] = 1;
+        cells.cell_player_states[piece] = player_type;
       }
       piece++;
     }
@@ -207,13 +212,19 @@ static int
 shouldSkipCell(int x,
                int y,
                int player_sign,
+               int active_player,
                struct Cells cells) {
   // Filter out moves off the end of the board
   if (x < 0 || y < 0 || x >= N_ROWS || y >= N_COLS) {
     return 1;
   }
 
-  // Check if the position is occupied already, TODO only check for your own colour
+  // If it's occupied but not by us then we can move to it (and take the piece on it in chess)
+  if (cells.cell_player_states[y + (x * N_COLS)] == active_player) {
+    return 0;
+  }
+
+  // Check if the position is occupied already
   if (cells.occupied_states[y + (x * N_COLS)] == 1) {
     return 1;
   }
@@ -272,6 +283,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
           if (shouldSkipCell(convertCoord(converted_x, N_ROWS),
                              convertCoord(converted_y, N_COLS),
                              player_sign,
+                             active_player,
                              cells)) {
 
             // need to move the position regardless
@@ -301,7 +313,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
     // Note x and y will never both be 0
 
-    if (shouldSkipCell(new_x, new_y, player_sign, cells)) {
+    if (shouldSkipCell(new_x, new_y, player_sign, active_player, cells)) {
       continue;
     }
 
@@ -353,7 +365,7 @@ handleMovements(struct ChessPieces active_pieces,
     int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
     int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
 
-    if (shouldSkipCell(new_x, new_y, player_sign, cells)) {
+    if (shouldSkipCell(new_x, new_y, player_sign, active_player, cells)) {
       continue;
     }
 
@@ -437,6 +449,8 @@ main(void)
     int score[2] = {0, 0};
     // TODO allocate these from an arena for variable number of players (and bots / NPCs later)
     PlayerType active_players_buf[2] = {WHITE_PLAYER, BLACK_PLAYER};
+
+    // Tracks the state a player is currently in
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
     int select_to_move_cells_buf[2] = {0, 0};
     int possible_move_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
@@ -460,8 +474,8 @@ main(void)
       .cell_player_states = &cell_player_states[0]
     };
 
-    setPieces(white_pieces, cells, piece_size, TOP_SIDE);
-    setPieces(black_pieces, cells, piece_size, BOTTOM_SIDE);
+    setPieces(white_pieces, cells, piece_size, TOP_SIDE, WHITE_PLAYER);
+    setPieces(black_pieces, cells, piece_size, BOTTOM_SIDE, BLACK_PLAYER);
 
     printBoardState(&cells.occupied_states[0]);
 
