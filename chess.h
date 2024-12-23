@@ -42,6 +42,7 @@ struct ChessPieces {
   Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
   uint8_t *is_dead;
   Color *colors;
+  PlayerType *player_type;
 };
 
 struct ChessTypes {
@@ -63,6 +64,11 @@ struct Players {
   PlayerType *player_type;
   PlayerState *player_states;
   struct ChessPieces *pieces;
+};
+
+struct Cells {
+  uint8_t *occupied_states;
+  int *cell_player_states;
 };
 
 // TODO have multiple boards

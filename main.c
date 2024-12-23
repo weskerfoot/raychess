@@ -114,7 +114,9 @@ static uint8_t black_piecesDead[N_PIECES];
 // maybe if the grids get really large it could just do collision detection though?
 // that would require computing hit boxes each time you move though which would be slower I think
 // not using a multi-dimensional array, might be resizable later
-static uint8_t board_state[N_CELLS];
+// no, just use multiple cells per entity/object
+static uint8_t occupied_states[N_CELLS];
+static int cell_player_states[N_CELLS];
 
 static void
 loadAssets() {
@@ -170,7 +172,7 @@ calculateMove(int col, int row, int size) {
 }
 
 static struct ChessPieces
-setPieces(struct ChessPieces pieces, uint8_t board_state[N_CELLS], int size, unsigned int side) {
+setPieces(struct ChessPieces pieces, struct Cells cells, int size, unsigned int side) {
   int piece = 0;
   int start;
   int end;
@@ -193,7 +195,7 @@ setPieces(struct ChessPieces pieces, uint8_t board_state[N_CELLS], int size, uns
         pieces.grid_positions[piece % N_PIECES] = position;
         pieces.chess_positions[piece % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[piece % N_PIECES] = 0;
-        board_state[piece] = 1;
+        cells.occupied_states[piece] = 1;
       }
       piece++;
     }
@@ -205,14 +207,14 @@ static int
 shouldSkipCell(int x,
                int y,
                int player_sign,
-               uint8_t board_state[N_CELLS]) {
+               struct Cells cells) {
   // Filter out moves off the end of the board
   if (x < 0 || y < 0 || x >= N_ROWS || y >= N_COLS) {
     return 1;
   }
 
   // Check if the position is occupied already, TODO only check for your own colour
-  if (board_state[y + (x * N_COLS)] == 1) {
+  if (cells.occupied_states[y + (x * N_COLS)] == 1) {
     return 1;
   }
 
@@ -228,7 +230,8 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
                          int player_sign,
                          struct Players active_players,
                          Vector2 active_chess_pos,
-                         struct ChessTypes chess_types) {
+                         struct ChessTypes chess_types,
+                         struct Cells cells) {
   // FIXME get this in here or pass it in
   //ChessPieceMovement active_piece_movement_type = chess_types.movement_types[active_piece_type];
   int move_to_count = 0;
@@ -264,7 +267,13 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
           scaled_x = scaled_x + offset.x;
           scaled_y = scaled_y + offset.y;
 
-          if (shouldSkipCell(convertCoord(converted_x, N_ROWS), convertCoord(converted_y, N_COLS), player_sign, board_state)) {
+          //int move_to_player_type = active_pieces.chess_type[active_cell_to_move];
+
+          if (shouldSkipCell(convertCoord(converted_x, N_ROWS),
+                             convertCoord(converted_y, N_COLS),
+                             player_sign,
+                             cells)) {
+
             // need to move the position regardless
             move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
             move_chess_pos.y = convertCoord(scaled_y, N_COLS);
@@ -292,7 +301,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
     // Note x and y will never both be 0
 
-    if (shouldSkipCell(new_x, new_y, player_sign, board_state)) {
+    if (shouldSkipCell(new_x, new_y, player_sign, cells)) {
       continue;
     }
 
@@ -325,7 +334,8 @@ handleMovements(struct ChessPieces active_pieces,
                 int player_sign,
                 struct Players active_players,
                 Vector2 active_chess_pos,
-                struct ChessTypes chess_types) {
+                struct ChessTypes chess_types,
+                struct Cells cells) {
   int move_to_count = 0;
 
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
@@ -343,7 +353,7 @@ handleMovements(struct ChessPieces active_pieces,
     int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
     int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
 
-    if (shouldSkipCell(new_x, new_y, player_sign, board_state)) {
+    if (shouldSkipCell(new_x, new_y, player_sign, cells)) {
       continue;
     }
 
@@ -444,10 +454,16 @@ main(void)
       .player_states = &player_states_buf[0]
     };
 
-    setPieces(white_pieces, board_state, piece_size, TOP_SIDE);
-    setPieces(black_pieces, board_state, piece_size, BOTTOM_SIDE);
+    // Cell stuff
+    struct Cells cells = {
+      .occupied_states = &occupied_states[0],
+      .cell_player_states = &cell_player_states[0]
+    };
 
-    printBoardState(&board_state[0]);
+    setPieces(white_pieces, cells, piece_size, TOP_SIDE);
+    setPieces(black_pieces, cells, piece_size, BOTTOM_SIDE);
+
+    printBoardState(&cells.occupied_states[0]);
 
     int active_player = BLACK_PLAYER;
 
@@ -511,7 +527,8 @@ main(void)
                                                   player_sign,
                                                   active_players,
                                                   active_chess_pos,
-                                                  chess_types);
+                                                  chess_types,
+                                                  cells);
                   break;
                 case UNBOUNDED:
                   move_to_count = handleMovementsUnbounded(active_pieces,
@@ -522,7 +539,8 @@ main(void)
                                                            player_sign,
                                                            active_players,
                                                            active_chess_pos,
-                                                           chess_types);
+                                                           chess_types,
+                                                           cells);
                   break;
 
               }
@@ -612,10 +630,8 @@ main(void)
                   //printf("from: x = %d, y = %d, x*y = %d\n", x_from, y_from, y_from + (x_from * N_COLS));
                   //printf("to: x = %d, y = %d, x*y = %d\n", x_to, y_to, y_to + (x_to * N_COLS));
 
-                  board_state[y_to + (x_to * N_COLS)] = 1;
-                  board_state[y_from + (x_from * N_COLS)] = 0;
-
-                  //printBoardState(&board_state[0]);
+                  cells.occupied_states[y_to + (x_to * N_COLS)] = 1;
+                  cells.occupied_states[y_from + (x_from * N_COLS)] = 0;
 
                   // Set the x,y coordinates first of the piece we want to move
                   active_pieces.chess_positions[active_cell_to_move].x = chessPosMoveTo.x;
