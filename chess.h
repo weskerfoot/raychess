@@ -69,6 +69,7 @@ struct Players {
 struct Cells {
   uint8_t *occupied_states;
   int *cell_player_states;
+  int *cell_piece_indices; // index to the piece currently occupying a cell
 };
 
 // TODO have multiple boards

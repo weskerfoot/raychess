@@ -106,8 +106,8 @@ static Vector3 whiteGridPositions[N_PIECES];
 static Vector3 blackGridPositions[N_PIECES];
 static Vector2 whiteChessPositions[N_PIECES];
 static Vector2 blackChessPositions[N_PIECES];
-static uint8_t white_piecesDead[N_PIECES];
-static uint8_t black_piecesDead[N_PIECES];
+static uint8_t whitePiecesDead[N_PIECES];
+static uint8_t blackPiecesDead[N_PIECES];
 
 // Stores a mapping of piece positions to their occupied state
 // y + (x * N_COLS) gives you the position in the array
@@ -117,6 +117,7 @@ static uint8_t black_piecesDead[N_PIECES];
 // no, just use multiple cells per entity/object
 static uint8_t occupied_states[N_CELLS];
 static int cell_player_states[N_CELLS];
+static int cell_piece_indices[N_CELLS];
 
 static void
 loadAssets() {
@@ -201,6 +202,7 @@ setPieces(struct ChessPieces pieces,
         pieces.is_dead[piece % N_PIECES] = 0;
         cells.occupied_states[piece] = 1;
         cells.cell_player_states[piece] = player_type;
+        cells.cell_piece_indices[piece] = piece % N_CELLS;
       }
       piece++;
     }
@@ -394,6 +396,23 @@ clamp(int d, int min, int max) {
   return t > max ? max : t;
 }
 
+
+static int
+calculate_row_move_forward(int active_cell_to_move_to, int player_sign, int move_count, int n_rows) {
+  if (move_count <= 0) {
+    return 0;
+  }
+  return clamp(active_cell_to_move_to - (player_sign * n_rows) % move_count, 0, move_count - 1);
+}
+
+static int
+calculate_row_move_backward(int active_cell_to_move_to, int player_sign, int move_count, int n_rows) {
+  if (move_count <= 0) {
+    return 0;
+  }
+  return clamp(active_cell_to_move_to + (player_sign * n_rows) % move_count, 0, move_count - 1);
+}
+
 int
 main(void)
 {
@@ -427,7 +446,7 @@ main(void)
     struct ChessPieces white_pieces = {
       .grid_positions = &whiteGridPositions[0],
       .chess_positions = &whiteChessPositions[0],
-      .is_dead = &white_piecesDead[0],
+      .is_dead = &whitePiecesDead[0],
       .chess_type = &whiteStartingPieces[0],
       .colors = &whiteColors[0] // later on, a player could have differently colored pieces
     };
@@ -435,7 +454,7 @@ main(void)
     struct ChessPieces black_pieces = {
       .grid_positions = &blackGridPositions[0],
       .chess_positions = &blackChessPositions[0],
-      .is_dead = &black_piecesDead[0],
+      .is_dead = &blackPiecesDead[0],
       .chess_type = &blackStartingPieces[0],
       .colors = &blackColors[0] // later on, a player could have differently colored pieces
     };
@@ -471,7 +490,8 @@ main(void)
     // Cell stuff
     struct Cells cells = {
       .occupied_states = &occupied_states[0],
-      .cell_player_states = &cell_player_states[0]
+      .cell_player_states = &cell_player_states[0],
+      .cell_piece_indices = &cell_piece_indices[0]
     };
 
     setPieces(white_pieces, cells, piece_size, TOP_SIDE, WHITE_PLAYER);
@@ -517,17 +537,17 @@ main(void)
 
               // These are set by the controls to say which cell to move to
               int move_count = active_players.possible_move_counts[active_player];
-              assert (move_count > 0);
-              int row_move_to_back = clamp(active_cell_to_move_to - (player_sign * N_ROWS) % move_count, 0, move_count - 1);
-              int row_move_to_forward = clamp(active_cell_to_move_to + (player_sign * N_ROWS) % move_count, 0, move_count - 1);
-              int col_move_to_forward = clamp(active_cell_to_move_to + (player_sign * 1) % move_count, 0, move_count - 1);
-              int col_move_to_back = clamp(active_cell_to_move_to - (player_sign * 1) % move_count, 0, move_count - 1);
+              assert (move_count >= 0);
+              int row_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
+              int row_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
+              int col_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, 1);
+              int col_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, 1);
 
               // These are set by the controls to say which cell to select
-              int row_move_back = clamp(active_cell_to_move - (player_sign * N_ROWS) % move_count, 0, move_count - 1);
-              int row_move_forward = clamp(active_cell_to_move + (player_sign * N_ROWS) % move_count, 0, move_count - 1);
-              int col_move_forward = clamp(active_cell_to_move + (player_sign * 1) % move_count, 0, move_count - 1);
-              int col_move_back = clamp(active_cell_to_move - (player_sign * 1) % move_count, 0, move_count - 1);
+              int row_move_back = calculate_row_move_backward(active_cell_to_move, player_sign, move_count, N_ROWS);
+              int row_move_forward = calculate_row_move_forward(active_cell_to_move, player_sign, move_count, N_ROWS);
+              int col_move_forward = calculate_row_move_forward(active_cell_to_move, player_sign, move_count, 1);
+              int col_move_back = calculate_row_move_backward(active_cell_to_move, player_sign, move_count, 1);
 
               // FIXME reduce number of parameters
               int move_to_count = 0;
