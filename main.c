@@ -212,7 +212,7 @@ setPieces(struct ChessPieces pieces,
         pieces.chess_positions[piece % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[piece % N_PIECES] = 0;
         cells.occupied_states[piece] = 1;
-        cells.cell_player_states[N_CELLS - piece] = player_id;
+        cells.cell_player_states[N_CELLS - piece - 1] = player_id;
         cells.cell_piece_indices[piece] = piece % N_CELLS;
       }
       piece++;
@@ -676,8 +676,7 @@ main(void)
                   cells.occupied_states[y_from + (x_from * N_COLS)] = 0;
 
                   cells.cell_player_states[y_to + (x_to * N_COLS)] = active_player;
-                  cells.cell_player_states[y_from + (x_from * N_COLS)] = 0;
-
+                  cells.cell_player_states[y_from + (x_from * N_COLS)] = -1;
 
                   printBoardState(&cells.occupied_states[0]);
                   printCellPlayerStates(&cells.cell_player_states[0]);
