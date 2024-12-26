@@ -228,13 +228,18 @@ shouldSkipCell(int x,
                int active_player,
                struct Cells cells) {
   // Filter out moves off the end of the board
+  int position = y + (x * N_COLS);
   if (x < 0 || y < 0 || x >= N_ROWS || y >= N_COLS) {
     return BOARD_EDGE;
   }
 
   // If it's occupied but not by us then we can move to it (and take the piece on it in chess)
-  if (cells.cell_player_states[y + (x * N_COLS)] == active_player) {
+  if (cells.cell_player_states[position] == active_player) {
     return OWN_PIECE;
+  }
+
+  if (cells.cell_player_states[position] != active_player && cells.occupied_states[position] != 0) {
+    return OTHER_PIECE;
   }
 
   return NO_COLLISION;
@@ -279,44 +284,55 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
       while ((scaled_x >= 0 && scaled_x < N_ROWS) &&
              (scaled_y >= 0 && scaled_y < N_COLS)) {
-          int converted_x = convertCoord(scaled_x, N_ROWS);
-          int converted_y = convertCoord(scaled_y, N_COLS);
-          Vector3 scaled_pos = calculateMove(converted_x, converted_y, piece_size);
+        int collision_state = NO_COLLISION;
 
-          scaled_x = scaled_x + offset.x;
-          scaled_y = scaled_y + offset.y;
+        int converted_x = convertCoord(scaled_x, N_ROWS);
+        int converted_y = convertCoord(scaled_y, N_COLS);
 
-          //int move_to_player_type = active_pieces.chess_type[active_cell_to_move];
+        Vector3 scaled_pos = calculateMove(converted_x, converted_y, piece_size);
 
-          if (shouldSkipCell(convertCoord(converted_x, N_ROWS),
-                             convertCoord(converted_y, N_COLS),
-                             player_sign,
-                             active_player,
-                             cells)) {
+        scaled_x = scaled_x + offset.x;
+        scaled_y = scaled_y + offset.y;
 
+        if (collision_state = shouldSkipCell(
+                           convertCoord(converted_x, N_ROWS),
+                           convertCoord(converted_y, N_COLS),
+                           player_sign,
+                           active_player,
+                           cells)
+            ) {
+
+          if (collision_state != OTHER_PIECE) {
             // need to move the position regardless
             move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
             move_chess_pos.y = convertCoord(scaled_y, N_COLS);
 
             // Check if it's the origin piece first
             if (!((scaled_x - offset.x) == current_x && (scaled_y - offset.y) == current_y)) {
-              break;
+             break;
             }
             continue;
           }
+        }
 
-          if (move_to_count == active_cell_to_move_to) {
-            DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
-            active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
-          }
-          else {
-            DrawCube(scaled_pos, 5, 0.1f, 5, GREEN);
-          }
+        if (move_to_count == active_cell_to_move_to) {
+          DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
+          active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
+        }
+        else {
+          DrawCube(scaled_pos, 5, 0.1f, 5, GREEN);
+        }
 
-          move_to_count++;
-          move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
-          move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+        move_to_count++;
+        move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
+        move_chess_pos.y = convertCoord(scaled_y, N_COLS);
+
+        if (collision_state == OTHER_PIECE) {
+          break;
+        }
+
       }
+
     }
 
     // Note x and y will never both be 0
@@ -676,7 +692,7 @@ main(void)
                   cells.occupied_states[y_from + (x_from * N_COLS)] = 0;
 
                   cells.cell_player_states[y_to + (x_to * N_COLS)] = active_player;
-                  cells.cell_player_states[y_from + (x_from * N_COLS)] = -1;
+                  cells.cell_player_states[y_from + (x_from * N_COLS)] = -1; // FIXME, broken if we touch another piece, needs to "kill" it
 
                   printBoardState(&cells.occupied_states[0]);
                   printCellPlayerStates(&cells.cell_player_states[0]);
