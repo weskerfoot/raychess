@@ -38,11 +38,6 @@ typedef enum ChessPiece {
     KING = 5
 } ChessPiece;
 
-typedef enum ChessPieceMovement {
-  NORMAL_MOVEMENT = 0,
-  UNBOUNDED = 1
-} ChessPieceMovement;
-
 struct ChessPieces {
   ChessPiece *chess_type;
   Vector3 *grid_positions; // where they are in 3D space
@@ -59,7 +54,6 @@ struct ChessTypes {
   Model *models;
   Vector2 **offsets; // "actions" a piece type can take
   int *offset_sizes;
-  ChessPieceMovement *movement_types;
 };
 
 struct Players {

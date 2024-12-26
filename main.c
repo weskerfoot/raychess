@@ -104,15 +104,6 @@ static Vector2 *offsets[6] = {
   &kingOffsets[0]
 };
 
-static ChessPieceMovement movement_types[6] = {
-  NORMAL_MOVEMENT,
-  NORMAL_MOVEMENT,
-  UNBOUNDED,
-  UNBOUNDED,
-  UNBOUNDED,
-  NORMAL_MOVEMENT
-};
-
 static Vector3 whiteGridPositions[N_PIECES];
 static Vector3 blackGridPositions[N_PIECES];
 static Vector2 whiteChessPositions[N_PIECES];
@@ -256,7 +247,7 @@ shouldSkipCell(int x,
 }
 
 static int
-handleMovementsUnbounded(struct ChessPieces active_pieces,
+handleMovements(struct ChessPieces active_pieces,
                          int piece_size,
                          int active_cell_to_move_to,
                          int active_cell_to_move,
@@ -266,8 +257,6 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
                          Vector2 active_chess_pos,
                          struct ChessTypes chess_types,
                          struct Cells cells) {
-  // FIXME get this in here or pass it in
-  //ChessPieceMovement active_piece_movement_type = chess_types.movement_types[active_piece_type];
   int move_to_count = 0;
 
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
@@ -425,7 +414,6 @@ main(void)
       .scaling_factors = &pieceScalingFactors[0],
       .offset_sizes = &offset_sizes[0],
       .offsets = &offsets[0],
-      .movement_types = &movement_types[0]
     };
 
     // Gameplay piece stuff
@@ -518,7 +506,6 @@ main(void)
 
               // TODO these are accessed again in the handleMovements functions so maybe those should just be one function?
               int active_piece_type = active_pieces.chess_type[active_cell_to_move];
-              ChessPieceMovement active_piece_movement_type = chess_types.movement_types[active_piece_type];
 
               // Get the position of the currently selected cell and highlight it red
               Vector3 highlight_pos = active_pieces.grid_positions[active_cell_to_move];
@@ -541,33 +528,16 @@ main(void)
 
               // FIXME reduce number of parameters
               int move_to_count = 0;
-              switch (active_piece_movement_type) {
-                case NORMAL_MOVEMENT:
-                  move_to_count = handleMovementsUnbounded(active_pieces,
-                                                           piece_size,
-                                                           active_cell_to_move_to,
-                                                           active_cell_to_move,
-                                                           active_player,
-                                                           player_sign,
-                                                           active_players,
-                                                           active_chess_pos,
-                                                           chess_types,
-                                                           cells);
-                  break;
-                case UNBOUNDED:
-                  move_to_count = handleMovementsUnbounded(active_pieces,
-                                                           piece_size,
-                                                           active_cell_to_move_to,
-                                                           active_cell_to_move,
-                                                           active_player,
-                                                           player_sign,
-                                                           active_players,
-                                                           active_chess_pos,
-                                                           chess_types,
-                                                           cells);
-                  break;
-
-              }
+              move_to_count = handleMovements(active_pieces,
+                                              piece_size,
+                                              active_cell_to_move_to,
+                                              active_cell_to_move,
+                                              active_player,
+                                              player_sign,
+                                              active_players,
+                                              active_chess_pos,
+                                              chess_types,
+                                              cells);
 
               // Handle cell movement for different states here
               switch (active_player_state) {
