@@ -211,7 +211,7 @@ setPieces(struct ChessPieces pieces,
         pieces.chess_positions[piece % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[piece % N_PIECES] = 0;
         cells.occupied_states[piece] = 1;
-        cells.cell_player_states[piece] = player_id;
+        cells.cell_player_states[N_CELLS - piece] = player_id;
         cells.cell_piece_indices[piece] = piece % N_CELLS;
       }
       piece++;
@@ -233,11 +233,6 @@ shouldSkipCell(int x,
 
   // If it's occupied but not by us then we can move to it (and take the piece on it in chess)
   if (cells.cell_player_states[y + (x * N_COLS)] == active_player) {
-    return 1;
-  }
-
-  // Check if the position is occupied already
-  if (cells.occupied_states[y + (x * N_COLS)] == 1) {
     return 1;
   }
 
