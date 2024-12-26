@@ -18,8 +18,8 @@ typedef enum PlayerState {
 
 // FIXME allow for a variable number of players (for not chess)
 typedef enum PlayerType {
-  WHITE_PLAYER = 1,
-  BLACK_PLAYER = 2,
+  WHITE_PLAYER = 0,
+  BLACK_PLAYER = 1,
 } PlayerType;
 
 typedef enum ChessPiece {

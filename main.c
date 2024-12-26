@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "math.h"
 #include "stdio.h"
+#include "string.h"
 #include "assert.h"
 #include "chess.h"
 #include "camera/rlTPCamera.h"
@@ -306,7 +307,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
           if (move_to_count == active_cell_to_move_to) {
             DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
-            active_players.select_to_move_to_chess_positions[active_player-1] = move_chess_pos;
+            active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
           }
           else {
             DrawCube(scaled_pos, 5, 0.1f, 5, GREEN);
@@ -331,7 +332,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 
     if (move_to_count == active_cell_to_move_to) {
       DrawCube(move_position, 5, 0.1f, 5, BLUE);
-      active_players.select_to_move_to_chess_positions[active_player-1] = move_chess_pos;
+      active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
     }
     else {
       DrawCube(move_position, 5, 0.1f, 5, GREEN);
@@ -384,7 +385,7 @@ handleMovements(struct ChessPieces active_pieces,
     if (move_to_count == active_cell_to_move_to) {
       DrawCube(move_position, 5, 0.1f, 5, BLUE);
       // Sets the chess position of the cell this player is possibly moving to
-      active_players.select_to_move_to_chess_positions[active_player-1] = move_chess_pos;
+      active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
     }
     else {
       DrawCube(move_position, 5, 0.1f, 5, GREEN);
@@ -493,6 +494,7 @@ main(void)
     };
 
     // Cell stuff
+    memset(&cell_player_states[0], -1, (sizeof cell_player_states));
     struct Cells cells = {
       .occupied_states = &occupied_states[0],
       .cell_player_states = &cell_player_states[0],
@@ -524,12 +526,12 @@ main(void)
 
           rlTPCameraBeginMode3D(&orbitCam);
 
-              struct ChessPieces active_pieces = active_players.pieces[active_player-1];
+              struct ChessPieces active_pieces = active_players.pieces[active_player];
 
               // Get the IDs of the cell to move and the possible cell to move to
-              int active_player_state = active_players.player_states[active_player-1];
-              int active_cell_to_move = active_players.select_to_move_cells[active_player-1];
-              int active_cell_to_move_to = active_players.select_to_move_to_cells[active_player-1];
+              int active_player_state = active_players.player_states[active_player];
+              int active_cell_to_move = active_players.select_to_move_cells[active_player];
+              int active_cell_to_move_to = active_players.select_to_move_to_cells[active_player];
               Vector2 active_chess_pos = active_pieces.chess_positions[active_cell_to_move];
 
               // TODO these are accessed again in the handleMovements functions so maybe those should just be one function?
@@ -542,7 +544,7 @@ main(void)
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
               // These are set by the controls to say which cell to move to
-              int move_count = active_players.possible_move_counts[active_player-1];
+              int move_count = active_players.possible_move_counts[active_player];
               assert (move_count >= 0);
               int row_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
               int row_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
@@ -590,55 +592,55 @@ main(void)
                 case PIECE_MOVE:
 
                   // Needed to know how to iterate through possible moves
-                  active_players.possible_move_counts[active_player-1] = move_to_count;
+                  active_players.possible_move_counts[active_player] = move_to_count;
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_to_cells[active_player-1] = col_move_to_back;
+                    active_players.select_to_move_to_cells[active_player] = col_move_to_back;
                     time_since_move = 0.0f;
                   }
 
                   if (left_x_right_control() && time_since_move >= 0.2f) {
-                    active_players.select_to_move_to_cells[active_player-1] = col_move_to_forward;
+                    active_players.select_to_move_to_cells[active_player] = col_move_to_forward;
                     time_since_move = 0.0f;
                   }
 
                   if (left_y_up_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_to_cells[active_player-1] = row_move_to_back;
+                    active_players.select_to_move_to_cells[active_player] = row_move_to_back;
                     time_since_move = 0.0f;
                   }
 
                   if (left_y_down_control() && time_since_move >= 0.2f) {
-                    active_players.select_to_move_to_cells[active_player-1] = row_move_to_forward;
+                    active_players.select_to_move_to_cells[active_player] = row_move_to_forward;
                     time_since_move = 0.0f;
                   }
                   break;
                 case PIECE_SELECTION:
 
-                  active_players.select_to_move_to_cells[active_player-1] = 0;
-                  active_players.possible_move_counts[active_player-1] = N_PIECES;
+                  active_players.select_to_move_to_cells[active_player] = 0;
+                  active_players.possible_move_counts[active_player] = N_PIECES;
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_cells[active_player-1] = col_move_back;
+                    active_players.select_to_move_cells[active_player] = col_move_back;
                     time_since_move = 0.0f;
                   }
 
                   if (left_x_right_control() && time_since_move >= 0.2f) {
-                    active_players.select_to_move_cells[active_player-1] = col_move_forward;
+                    active_players.select_to_move_cells[active_player] = col_move_forward;
                     time_since_move = 0.0f;
                   }
 
                   if (left_y_up_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_cells[active_player-1] = row_move_back;
+                    active_players.select_to_move_cells[active_player] = row_move_back;
                     time_since_move = 0.0f;
                   }
 
                   if (left_y_down_control() &&
                       time_since_move >= 0.2f) {
-                    active_players.select_to_move_cells[active_player-1] = row_move_forward;
+                    active_players.select_to_move_cells[active_player] = row_move_forward;
                     time_since_move = 0.0f;
                   }
                   break;
@@ -647,10 +649,10 @@ main(void)
               // Handle switching modes here
               if (trigger_control() && time_since_move >= 0.2f) {
                 if (active_player_state == PIECE_MOVE) {
-                  active_player_state = active_players.player_states[active_player-1] = PIECE_SELECTION;
+                  active_player_state = active_players.player_states[active_player] = PIECE_SELECTION;
                 }
                 else {
-                  active_player_state = active_players.player_states[active_player-1] = PIECE_MOVE;
+                  active_player_state = active_players.player_states[active_player] = PIECE_MOVE;
                 }
                 time_since_move = 0.0f;
               }
@@ -658,7 +660,7 @@ main(void)
               // Handle moving a piece to a new cell here
               if (select_control() && time_since_move >= 0.2f) {
                 if (active_player_state == PIECE_MOVE) {
-                  Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player-1];
+                  Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player];
                   Vector2 chessPosMoveFrom = active_pieces.chess_positions[active_cell_to_move];
 
                   int x_to = convertCoord(chessPosMoveTo.x, N_ROWS);
@@ -688,7 +690,7 @@ main(void)
                   active_pieces.grid_positions[active_cell_to_move] = calculateMove(chessPosMoveTo.x, chessPosMoveTo.y, piece_size);
 
                   // and reset the mode back to piece selection
-                  active_player_state = active_players.player_states[active_player-1] = PIECE_SELECTION;
+                  active_player_state = active_players.player_states[active_player] = PIECE_SELECTION;
 
                 }
                 time_since_move = 0.0f;
