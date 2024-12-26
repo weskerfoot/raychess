@@ -190,7 +190,7 @@ setPieces(struct ChessPieces pieces,
           int size,
           unsigned int side,
           int player_id) {
-  int piece = 0;
+  int cell_id = 0;
   int start;
   int end;
 
@@ -208,15 +208,15 @@ setPieces(struct ChessPieces pieces,
     for (float j = -3; j <= 4; j++) {
       Vector3 position = calculateMove(i, j, size);
       // there are always 16 pieces per player
-      if (piece >= start && piece < end) {
-        pieces.grid_positions[piece % N_PIECES] = position;
-        pieces.chess_positions[piece % N_PIECES] = (Vector2){i, j};
-        pieces.is_dead[piece % N_PIECES] = 0;
-        cells.occupied_states[piece] = 1;
-        cells.cell_player_states[N_CELLS - piece - 1] = player_id;
-        cells.cell_piece_indices[piece] = piece % N_CELLS;
+      if (cell_id >= start && cell_id < end) {
+        pieces.grid_positions[cell_id % N_PIECES] = position;
+        pieces.chess_positions[cell_id % N_PIECES] = (Vector2){i, j};
+        pieces.is_dead[cell_id % N_PIECES] = 0;
+        cells.occupied_states[cell_id] = 1;
+        cells.cell_player_states[N_CELLS - cell_id - 1] = player_id;
+        cells.cell_piece_indices[cell_id] = cell_id % N_CELLS;
       }
-      piece++;
+      cell_id++;
     }
   }
   return pieces;
