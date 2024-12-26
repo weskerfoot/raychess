@@ -229,15 +229,15 @@ shouldSkipCell(int x,
                struct Cells cells) {
   // Filter out moves off the end of the board
   if (x < 0 || y < 0 || x >= N_ROWS || y >= N_COLS) {
-    return 1;
+    return BOARD_EDGE;
   }
 
   // If it's occupied but not by us then we can move to it (and take the piece on it in chess)
   if (cells.cell_player_states[y + (x * N_COLS)] == active_player) {
-    return 1;
+    return OWN_PIECE;
   }
 
-  return 0;
+  return NO_COLLISION;
 }
 
 static int
@@ -507,7 +507,7 @@ main(void)
     printBoardState(&cells.occupied_states[0]);
     printCellPlayerStates(&cells.cell_player_states[0]);
 
-    int active_player = WHITE_PLAYER;
+    int active_player = BLACK_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
     // In some other cell based game, this could be based on a direction variable instead

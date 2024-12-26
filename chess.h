@@ -10,6 +10,13 @@ enum SIDES {
   BOTTOM_SIDE = 1
 };
 
+typedef enum CollisionStates {
+  NO_COLLISION = 0,
+  OWN_PIECE = 1,
+  OTHER_PIECE = 2,
+  BOARD_EDGE = 3
+} CollisionStates;
+
 typedef enum PlayerState {
   PIECE_SELECTION = 0,
   PIECE_MOVE = 1,
