@@ -257,112 +257,7 @@ handleMovements(struct ChessPieces active_pieces,
                          Vector2 active_chess_pos,
                          struct ChessTypes chess_types,
                          struct Cells cells) {
-  int move_to_count = 0;
-
-  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
-  int active_piece_aps = active_pieces.action_points_per_turn[active_cell_to_move];
-
-  Vector2 *offsets = chess_types.offsets[active_piece_type];
-  int offsetNum = chess_types.offset_sizes[active_piece_type];
-
-  // FIXME check if it should be scaled here
-  for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
-    Vector2 offset = offsets[offsetIndex];
-
-    Vector2 move_chess_pos;
-
-    int current_x = convertCoord(active_chess_pos.x, N_ROWS);
-    int current_y = convertCoord(active_chess_pos.y, N_COLS);
-
-    int new_x = current_x + (offset.x * player_sign);
-    int new_y = current_y + (offset.y * player_sign);
-
-    if ((offset.x * N_ROWS) != 0.0f || (offset.y * N_COLS) != 0.0f) {
-
-      float scaled_x = current_x;
-      float scaled_y = current_y;
-
-      int used_aps = 0;
-
-      while ((scaled_x >= 0 && scaled_x < N_ROWS) &&
-             (scaled_y >= 0 && scaled_y < N_COLS) &&
-             used_aps < active_piece_aps) {
-        used_aps++;
-        int collision_state = NO_COLLISION;
-
-        int converted_x = convertCoord(scaled_x, N_ROWS);
-        int converted_y = convertCoord(scaled_y, N_COLS);
-
-        Vector3 scaled_pos = calculateMove(converted_x, converted_y, piece_size);
-
-        scaled_x = scaled_x + offset.x;
-        scaled_y = scaled_y + offset.y;
-
-        if (collision_state = shouldSkipCell(
-                           convertCoord(converted_x, N_ROWS),
-                           convertCoord(converted_y, N_COLS),
-                           player_sign,
-                           active_player,
-                           cells)
-            ) {
-
-          if (collision_state != OTHER_PIECE) {
-            // need to move the position regardless
-            move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
-            move_chess_pos.y = convertCoord(scaled_y, N_COLS);
-
-            // Check if it's the origin piece first
-            if (!((scaled_x - offset.x) == current_x && (scaled_y - offset.y) == current_y)) {
-             break;
-            }
-            continue;
-          }
-        }
-
-        if (move_to_count == active_cell_to_move_to) {
-          DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
-          active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
-        }
-        else {
-          DrawCube(scaled_pos, 5, 0.1f, 5, GREEN);
-        }
-
-        move_to_count++;
-        move_chess_pos.x = convertCoord(scaled_x, N_ROWS);
-        move_chess_pos.y = convertCoord(scaled_y, N_COLS);
-
-        if (collision_state == OTHER_PIECE) {
-          break;
-        }
-
-      }
-
-    }
-
-    // Note x and y will never both be 0
-
-    if (shouldSkipCell(new_x, new_y, player_sign, active_player, cells)) {
-      continue;
-    }
-
-    move_chess_pos.x = convertCoord(new_x, N_ROWS);
-    move_chess_pos.y = convertCoord(new_y, N_COLS);
-
-    Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, piece_size);
-
-    if (move_to_count == active_cell_to_move_to) {
-      DrawCube(move_position, 5, 0.1f, 5, BLUE);
-      active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
-    }
-    else {
-      DrawCube(move_position, 5, 0.1f, 5, GREEN);
-    }
-
-    move_to_count++;
-  }
-
-  assert (move_to_count >= 0);
-  return move_to_count;
+  return 0;
 }
 
 static int
@@ -449,7 +344,7 @@ main(void)
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
     int select_to_move_cells_buf[2] = {0, 0};
     int possible_move_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
-    int select_to_move_to_cells_buf[2] = {0, 0};
+    int select_to_move_to_cells_buf[2] = {-1, -1};
     Vector2 select_to_move_to_chess_positions_buf[2] = {{0},{0}};
 
     struct Players active_players = {
@@ -514,7 +409,6 @@ main(void)
 
               // These are set by the controls to say which cell to move to
               int move_count = active_players.possible_move_counts[active_player];
-              assert (move_count >= 0);
               int row_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
               int row_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
               int col_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, 1);
@@ -603,7 +497,7 @@ main(void)
                 if (active_player_state == PIECE_MOVE) {
                   active_player_state = active_players.player_states[active_player] = PIECE_SELECTION;
                 }
-                else {
+                else if (move_count > 0) {
                   active_player_state = active_players.player_states[active_player] = PIECE_MOVE;
                 }
                 time_since_move = 0.0f;
@@ -611,7 +505,7 @@ main(void)
 
               // Handle moving a piece to a new cell here
               if (select_control() && time_since_move >= 0.2f) {
-                if (active_player_state == PIECE_MOVE) {
+                if (active_player_state == PIECE_MOVE && move_count > 0) {
                   Vector2 chessPosMoveTo = active_players.select_to_move_to_chess_positions[active_player];
                   Vector2 chessPosMoveFrom = active_pieces.chess_positions[active_cell_to_move];
 
