@@ -50,6 +50,7 @@ struct ChessPieces {
   uint8_t *is_dead;
   Color *colors;
   PlayerType *player_type;
+  int *action_points_per_turn;
 };
 
 struct ChessTypes {

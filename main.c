@@ -71,6 +71,16 @@ static Color whiteColors[N_PIECES] = {
   WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
 };
 
+static int whiteStartingAPs[N_PIECES] = {
+    1, 1, 1, 1, 1, 1, 1, 1,     // First row
+    N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS // Second row
+};
+
+static int blackStartingAPs[N_PIECES] = {
+    N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS, // Second row
+    1, 1, 1, 1, 1, 1, 1, 1     // First row
+};
+
 // allocate buffers for game data
 static Texture2D pieceTextures[6];
 static Model pieceModels[6];
@@ -261,6 +271,7 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
   int move_to_count = 0;
 
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
+  int active_piece_aps = active_pieces.action_points_per_turn[active_cell_to_move];
 
   Vector2 *offsets = chess_types.offsets[active_piece_type];
   int offsetNum = chess_types.offset_sizes[active_piece_type];
@@ -282,8 +293,12 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
       float scaled_x = current_x;
       float scaled_y = current_y;
 
+      int used_aps = 0;
+
       while ((scaled_x >= 0 && scaled_x < N_ROWS) &&
-             (scaled_y >= 0 && scaled_y < N_COLS)) {
+             (scaled_y >= 0 && scaled_y < N_COLS) &&
+             used_aps < active_piece_aps) {
+        used_aps++;
         int collision_state = NO_COLLISION;
 
         int converted_x = convertCoord(scaled_x, N_ROWS);
@@ -362,57 +377,6 @@ handleMovementsUnbounded(struct ChessPieces active_pieces,
 }
 
 static int
-handleMovements(struct ChessPieces active_pieces,
-                int piece_size,
-                int active_cell_to_move_to,
-                int active_cell_to_move,
-                int active_player,
-                int player_sign,
-                struct Players active_players,
-                Vector2 active_chess_pos,
-                struct ChessTypes chess_types,
-                struct Cells cells) {
-  int move_to_count = 0;
-
-  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
-
-  Vector2 *offsets = chess_types.offsets[active_piece_type];
-  int offsetNum = chess_types.offset_sizes[active_piece_type];
-
-  // This loop handles highlighting the possible cells the currently selected piece could move to
-  // It also sets select_to_move_to_chess_positions for the current player
-  // which is later used to actually move to that position if they decide to
-  for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
-    Vector2 offset = offsets[offsetIndex];
-    Vector2 move_chess_pos;
-
-    int new_x = convertCoord(active_chess_pos.x, N_ROWS) + (offset.x * player_sign);
-    int new_y = convertCoord(active_chess_pos.y, N_COLS) + (offset.y * player_sign);
-
-    if (shouldSkipCell(new_x, new_y, player_sign, active_player, cells)) {
-      continue;
-    }
-
-    move_chess_pos.x = convertCoord(new_x, N_ROWS);
-    move_chess_pos.y = convertCoord(new_y, N_COLS);
-
-    Vector3 move_position = calculateMove(move_chess_pos.x, move_chess_pos.y, piece_size);
-
-    if (move_to_count == active_cell_to_move_to) {
-      DrawCube(move_position, 5, 0.1f, 5, BLUE);
-      // Sets the chess position of the cell this player is possibly moving to
-      active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
-    }
-    else {
-      DrawCube(move_position, 5, 0.1f, 5, GREEN);
-    }
-
-    move_to_count++;
-  }
-  return move_to_count;
-}
-
-static int
 clamp(int d, int min, int max) {
   const int t = d < min ? min : d;
   return t > max ? max : t;
@@ -470,7 +434,8 @@ main(void)
       .chess_positions = &whiteChessPositions[0],
       .is_dead = &whitePiecesDead[0],
       .chess_type = &whiteStartingPieces[0],
-      .colors = &whiteColors[0] // later on, a player could have differently colored pieces
+      .colors = &whiteColors[0], // later on, a player could have differently colored pieces
+      .action_points_per_turn = &whiteStartingAPs[0]
     };
 
     struct ChessPieces black_pieces = {
@@ -478,7 +443,8 @@ main(void)
       .chess_positions = &blackChessPositions[0],
       .is_dead = &blackPiecesDead[0],
       .chess_type = &blackStartingPieces[0],
-      .colors = &blackColors[0] // later on, a player could have differently colored pieces
+      .colors = &blackColors[0], // later on, a player could have differently colored pieces
+      .action_points_per_turn = &blackStartingAPs[0]
     };
 
     // TODO, load these from data, set the size when it loads the players in a level
@@ -577,16 +543,16 @@ main(void)
               int move_to_count = 0;
               switch (active_piece_movement_type) {
                 case NORMAL_MOVEMENT:
-                  move_to_count = handleMovements(active_pieces,
-                                                  piece_size,
-                                                  active_cell_to_move_to,
-                                                  active_cell_to_move,
-                                                  active_player,
-                                                  player_sign,
-                                                  active_players,
-                                                  active_chess_pos,
-                                                  chess_types,
-                                                  cells);
+                  move_to_count = handleMovementsUnbounded(active_pieces,
+                                                           piece_size,
+                                                           active_cell_to_move_to,
+                                                           active_cell_to_move,
+                                                           active_player,
+                                                           player_sign,
+                                                           active_players,
+                                                           active_chess_pos,
+                                                           chess_types,
+                                                           cells);
                   break;
                 case UNBOUNDED:
                   move_to_count = handleMovementsUnbounded(active_pieces,
