@@ -248,15 +248,37 @@ shouldSkipCell(int x,
 
 static int
 handleMovements(struct ChessPieces active_pieces,
-                         int piece_size,
-                         int active_cell_to_move_to,
-                         int active_cell_to_move,
-                         int active_player,
-                         int player_sign,
-                         struct Players active_players,
-                         Vector2 active_chess_pos,
-                         struct ChessTypes chess_types,
-                         struct Cells cells) {
+                int piece_size,
+                int active_cell_to_move_to,
+                int active_cell_to_move,
+                int active_player,
+                int player_sign,
+                struct Players active_players,
+                Vector2 active_chess_pos,
+                struct ChessTypes chess_types,
+                struct Cells cells) {
+
+  // Do a "join" using the active_cell_to_move
+  // note that this is a cell number but it will always map to a valid piece
+  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
+  Vector2 *offsets = chess_types.offsets[active_piece_type];
+  int offsetNum = chess_types.offset_sizes[active_piece_type];
+
+  // Algorithm for moving to different cells
+  // iterate over list of possible offsets
+  //  for each offset, iterate over cells in that direction
+  //    check how many times we've iterated, if it's more than the max action points, end
+  //    get the following data:
+  //      - is the cell currently occupied?
+  //      - if it is occupied, is it occupied by one of our pieces?
+  //
+  //    if it is occupied by one of our pieces, stop, this cannot be valid
+  //    if it is occupied by a piece owned by another player, we can move to it
+  //      also set select_to_take_cells on the player table for that player (not yet added)
+  //      also increment move_count
+  //      then break because we can't move any further
+  //    if it is unoccupied
+  //      increment move_count
   return 0;
 }
 
@@ -272,7 +294,7 @@ calculate_row_move_forward(int active_cell_to_move_to, int player_sign, int move
   if (move_count <= 0) {
     return 0;
   }
-  return clamp(active_cell_to_move_to - (player_sign * n_rows) % move_count, 0, move_count - 1);
+  return clamp(active_cell_to_move_to + (player_sign * n_rows) % move_count, 0, move_count - 1);
 }
 
 static int
@@ -280,7 +302,7 @@ calculate_row_move_backward(int active_cell_to_move_to, int player_sign, int mov
   if (move_count <= 0) {
     return 0;
   }
-  return clamp(active_cell_to_move_to + (player_sign * n_rows) % move_count, 0, move_count - 1);
+  return clamp(active_cell_to_move_to - (player_sign * n_rows) % move_count, 0, move_count - 1);
 }
 
 int
@@ -408,6 +430,7 @@ main(void)
               DrawCube(highlight_pos, 5, 0.1f, 5, RED);
 
               // These are set by the controls to say which cell to move to
+              // the names refer to moving in the x or y direction basically
               int move_count = active_players.possible_move_counts[active_player];
               int row_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
               int row_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
