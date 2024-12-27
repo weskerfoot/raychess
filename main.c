@@ -311,15 +311,19 @@ main(void)
     const int screenWidth = 800;
     const int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - 3d camera free");
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+
+    InitWindow(screenWidth, screenHeight, "wesgame");
+    EnableCursor();
+
+    int display = GetCurrentMonitor();
+    //SetWindowSize(GetMonitorWidth(display), GetMonitorHeight(display));
 
     rlTPCamera orbitCam;
     rlTPCameraInit(&orbitCam, 45, (Vector3){ 1, 0 ,0 });
     orbitCam.ViewAngles.y = -15 * DEG2RAD;
 
     loadAssets();
-
-    DisableCursor();
 
     SetTargetFPS(60);
     float piece_size = 5.0f;
