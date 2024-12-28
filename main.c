@@ -214,7 +214,7 @@ setPieces(struct ChessPieces pieces,
         pieces.is_dead[cell_id % N_PIECES] = 0;
         cells.occupied_states[cell_id] = 1;
         cells.cell_player_states[N_CELLS - cell_id - 1] = player_id;
-        cells.cell_piece_indices[cell_id] = cell_id % N_CELLS;
+        cells.cell_piece_indices[N_CELLS - cell_id - 1] = cell_id % N_PIECES;
       }
       cell_id++;
     }
@@ -608,14 +608,19 @@ main(void)
                   int x_from = convertCoord(chessPosMoveFrom.x, N_ROWS);
                   int y_from = convertCoord(chessPosMoveFrom.y, N_ROWS);
 
-                  //printf("from: x = %d, y = %d, x*y = %d\n", x_from, y_from, y_from + (x_from * N_COLS));
-                  //printf("to: x = %d, y = %d, x*y = %d\n", x_to, y_to, y_to + (x_to * N_COLS));
+                  if (cells.occupied_states[y_to + (x_to * N_COLS)] == 1) {
+                    // get the piece associated with the cell currently
+                    int kill_cell_piece_index = cells.cell_piece_indices[y_to + (x_to * N_COLS)];
+                    int kill_cell_player_id = cells.cell_player_states[y_to + (x_to * N_COLS)];
+                    // Now get the player associated and set that piece to be dead
+                    active_players.pieces[kill_cell_player_id].is_dead[kill_cell_piece_index] = (uint8_t)1;
+                  }
 
                   cells.occupied_states[y_to + (x_to * N_COLS)] = 1;
                   cells.occupied_states[y_from + (x_from * N_COLS)] = 0;
 
                   cells.cell_player_states[y_to + (x_to * N_COLS)] = active_player;
-                  cells.cell_player_states[y_from + (x_from * N_COLS)] = -1; // FIXME, broken if we touch another piece, needs to "kill" it
+                  cells.cell_player_states[y_from + (x_from * N_COLS)] = -1;
 
                   printBoardState(&cells.occupied_states[0]);
                   printCellPlayerStates(&cells.cell_player_states[0]);

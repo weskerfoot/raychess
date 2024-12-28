@@ -65,7 +65,7 @@ struct Players {
   Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
   PlayerType *player_type;
   PlayerState *player_states;
-  struct ChessPieces *pieces;
+  struct ChessPieces *pieces; // FIXME shouldn't be pointers, should be indices
 };
 
 struct Cells {
@@ -79,6 +79,7 @@ struct Cells {
 // Pawn move offsets (including the initial two-square move)
 Vector2 pawnOffsets[] = {
     {1, 0},  // Single square forward
+             // FIXME, need a rule that it can take other pieces diagonally only
 };
 
 // Knight move offsets
