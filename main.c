@@ -72,8 +72,8 @@ static Color whiteColors[N_PIECES] = {
 };
 
 static int whiteStartingAPs[N_PIECES] = {
-    N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS, // Second row
     1, 1, 1, 1, 1, 1, 1, 1,     // First row
+    N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS, // Second row
 };
 
 static int blackStartingAPs[N_PIECES] = {
@@ -258,26 +258,12 @@ handleMovements(struct ChessPieces active_pieces,
                 struct ChessTypes chess_types,
                 struct Cells cells) {
 
-  // Algorithm for moving to different cells
-  // iterate over list of possible offsets
-  //  for each offset, iterate over cells in that direction
-  //    check how many times we've iterated, if it's more than the max action points, end
-  //    get the following data:
-  //      - is the cell currently occupied?
-  //      - if it is occupied, is it occupied by one of our pieces?
-  //
-  //    if it is occupied by one of our pieces, stop, this cannot be valid
-  //    if it is occupied by a piece owned by another player, we can move to it
-  //      also set select_to_take_cells on the player table for that player (not yet added)
-  //      also increment move_count
-  //      then break because we can't move any further
-  //    if it is unoccupied
-  //      increment move_count
-  //
-  // Do a "join" using the active_cell_to_move
-  // note that this is a cell number but it will always map to a valid piece
-
   int active_piece_type = active_pieces.chess_type[active_cell_to_move];
+
+  int active_piece_aps = active_pieces.action_points_per_turn[active_cell_to_move];
+
+  assert(active_piece_aps > 0);
+
   Vector2 *offsets = chess_types.offsets[active_piece_type];
   int offsetNum = chess_types.offset_sizes[active_piece_type];
   Vector2 move_chess_pos;
@@ -295,7 +281,20 @@ handleMovements(struct ChessPieces active_pieces,
     int scaled_y = convertCoord(active_chess_pos.y, N_COLS);
 
     int collision_state = NO_COLLISION;
+
+    int found_other = 0;
+
+    int used_aps = 0;
+
     while ((scaled_x >= 0 && scaled_x < N_ROWS) && (scaled_y >= 0 && scaled_y < N_COLS)) {
+      if (found_other == 1) {
+        break;
+      }
+
+      if (used_aps > active_piece_aps) {
+        break;
+      }
+
       int converted_x = convertCoord(scaled_x, N_ROWS);
       int converted_y = convertCoord(scaled_y, N_COLS);
       Vector3 scaled_pos = calculateMove(converted_x, converted_y, piece_size);
@@ -303,21 +302,31 @@ handleMovements(struct ChessPieces active_pieces,
       scaled_x = scaled_x + (offset.x * player_sign);
       scaled_y = scaled_y + (offset.y * player_sign);
 
-      /*
+      used_aps++;
+
       if ((collision_state = shouldSkipCell(
                          convertCoord(converted_x, N_ROWS),
                          convertCoord(converted_y, N_COLS),
-                         player_sign, // FIXME player sign not accounting for thins properly?
+                         player_sign,
                          active_player,
                          cells))) {
 
         // Check if it's the origin piece first
+
         if (((scaled_x - offset.x) == origin_x && (scaled_y - offset.y) == origin_y)) {
          continue;
         }
-        break;
+        // Make sure to check if it's our own piece but only after checking if it's the origin
+        else if (collision_state == OWN_PIECE) {
+          break;
+        }
+        else if (collision_state == OTHER_PIECE) {
+          found_other = 1;
+        }
+        else {
+          break;
+        }
       }
-      */
 
       // have to select the *previous* one
       move_chess_pos.x = convertCoord(scaled_x - offset.x, N_ROWS);
