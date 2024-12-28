@@ -72,8 +72,8 @@ static Color whiteColors[N_PIECES] = {
 };
 
 static int whiteStartingAPs[N_PIECES] = {
+    N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS, // Second row
     1, 1, 1, 1, 1, 1, 1, 1,     // First row
-    N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS // Second row
 };
 
 static int blackStartingAPs[N_PIECES] = {
@@ -258,12 +258,6 @@ handleMovements(struct ChessPieces active_pieces,
                 struct ChessTypes chess_types,
                 struct Cells cells) {
 
-  // Do a "join" using the active_cell_to_move
-  // note that this is a cell number but it will always map to a valid piece
-  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
-  Vector2 *offsets = chess_types.offsets[active_piece_type];
-  int offsetNum = chess_types.offset_sizes[active_piece_type];
-
   // Algorithm for moving to different cells
   // iterate over list of possible offsets
   //  for each offset, iterate over cells in that direction
@@ -279,7 +273,70 @@ handleMovements(struct ChessPieces active_pieces,
   //      then break because we can't move any further
   //    if it is unoccupied
   //      increment move_count
-  return 0;
+  //
+  // Do a "join" using the active_cell_to_move
+  // note that this is a cell number but it will always map to a valid piece
+
+  int active_piece_type = active_pieces.chess_type[active_cell_to_move];
+  Vector2 *offsets = chess_types.offsets[active_piece_type];
+  int offsetNum = chess_types.offset_sizes[active_piece_type];
+  Vector2 move_chess_pos;
+
+  int move_to_count = 0;
+
+  for (int offsetIndex = 0; offsetIndex < offsetNum; offsetIndex++) {
+    Vector2 offset = offsets[offsetIndex];
+
+    // Used to refer to the active chess position in x/y coordinates
+    int origin_x = convertCoord(active_chess_pos.x, N_ROWS);
+    int origin_y = convertCoord(active_chess_pos.y, N_COLS);
+
+    int scaled_x = convertCoord(active_chess_pos.x, N_ROWS);
+    int scaled_y = convertCoord(active_chess_pos.y, N_COLS);
+
+    int collision_state = NO_COLLISION;
+    while ((scaled_x >= 0 && scaled_x < N_ROWS) && (scaled_y >= 0 && scaled_y < N_COLS)) {
+      int converted_x = convertCoord(scaled_x, N_ROWS);
+      int converted_y = convertCoord(scaled_y, N_COLS);
+      Vector3 scaled_pos = calculateMove(converted_x, converted_y, piece_size);
+
+      scaled_x = scaled_x + (offset.x * player_sign);
+      scaled_y = scaled_y + (offset.y * player_sign);
+
+      /*
+      if ((collision_state = shouldSkipCell(
+                         convertCoord(converted_x, N_ROWS),
+                         convertCoord(converted_y, N_COLS),
+                         player_sign, // FIXME player sign not accounting for thins properly?
+                         active_player,
+                         cells))) {
+
+        // Check if it's the origin piece first
+        if (((scaled_x - offset.x) == origin_x && (scaled_y - offset.y) == origin_y)) {
+         continue;
+        }
+        break;
+      }
+      */
+
+      // have to select the *previous* one
+      move_chess_pos.x = convertCoord(scaled_x - offset.x, N_ROWS);
+      move_chess_pos.y = convertCoord(scaled_y - offset.y, N_COLS);
+
+      if (move_to_count == active_cell_to_move_to) {
+        DrawCube(scaled_pos, 5, 0.1f, 5, BLUE);
+        active_players.select_to_move_to_chess_positions[active_player] = move_chess_pos;
+      }
+      else {
+        DrawCube(scaled_pos, 5, 0.1f, 5, GREEN);
+      }
+
+      move_to_count++;
+
+    }
+  }
+
+  return move_to_count;
 }
 
 static int
@@ -398,7 +455,7 @@ main(void)
     printBoardState(&cells.occupied_states[0]);
     printCellPlayerStates(&cells.cell_player_states[0]);
 
-    int active_player = BLACK_PLAYER;
+    int active_player = WHITE_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
     // In some other cell based game, this could be based on a direction variable instead

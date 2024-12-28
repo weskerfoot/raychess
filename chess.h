@@ -79,7 +79,6 @@ struct Cells {
 // Pawn move offsets (including the initial two-square move)
 Vector2 pawnOffsets[] = {
     {1, 0},  // Single square forward
-    {2, 0}   // Two squares forward (only available as the first move)
 };
 
 // Knight move offsets
