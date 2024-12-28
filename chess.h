@@ -39,6 +39,8 @@ typedef enum ChessPiece {
     KING = 5
 } ChessPiece;
 
+// FIXME store the size of each table instead of hardcoding it, it will make it easier to generate this stuff later
+
 struct ChessPieces {
   ChessPiece *chess_type;
   Vector3 *grid_positions; // where they are in 3D space
@@ -118,4 +120,3 @@ Vector2 kingOffsets[] = {
     {-1, 1}, {1, 1},
     {0, 1}
 };
-
