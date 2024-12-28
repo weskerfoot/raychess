@@ -51,6 +51,13 @@ select_control() {
   return gamepad_control || key_control;
 }
 
+static int
+switch_players_control() {
+  int gamepad_control = IsGamepadButtonDown(NINTENDO_CONTROLLER, GAMEPAD_BUTTON_LEFT_FACE_UP);
+  int key_control = IsKeyDown(KEY_P);
+  return gamepad_control || key_control;
+}
+
 static ChessPiece whiteStartingPieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // Second row
@@ -435,7 +442,7 @@ main(void)
     // Tracks the state a player is currently in
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
     int select_to_move_cells_buf[2] = {0, 0};
-    int possible_move_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
+    int live_piece_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
     int select_to_move_to_cells_buf[2] = {-1, -1};
     Vector2 select_to_move_to_chess_positions_buf[2] = {{0},{0}};
 
@@ -444,7 +451,7 @@ main(void)
       .select_to_move_cells = &select_to_move_cells_buf[0],
       .select_to_move_to_cells = &select_to_move_to_cells_buf[0],
       .select_to_move_to_chess_positions = &select_to_move_to_chess_positions_buf[0],
-      .possible_move_counts = &possible_move_counts_buf[0],
+      .live_piece_counts = &live_piece_counts_buf[0],
       .player_type = &active_players_buf[0],
       .pieces = &pieces[0],
       .player_states = &player_states_buf[0]
@@ -474,7 +481,7 @@ main(void)
     float time_since_move = 0;
 
     while (!WindowShouldClose()) {
-      player_sign = active_player == BLACK_PLAYER ? -1 : 1;
+      player_sign = active_player == BLACK_PLAYER ? -1 : 1; // FIXME doesn't work for more than 2 players
       rlTPCameraUpdate(&orbitCam);
 
       BeginDrawing();
@@ -501,7 +508,7 @@ main(void)
 
               // These are set by the controls to say which cell to move to
               // the names refer to moving in the x or y direction basically
-              int move_count = active_players.possible_move_counts[active_player];
+              int move_count = active_players.live_piece_counts[active_player];
               int row_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
               int row_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, N_ROWS);
               int col_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, 1);
@@ -531,7 +538,7 @@ main(void)
                 case PIECE_MOVE:
 
                   // Needed to know how to iterate through possible moves
-                  active_players.possible_move_counts[active_player] = move_to_count;
+                  active_players.live_piece_counts[active_player] = move_to_count;
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
@@ -558,7 +565,7 @@ main(void)
                 case PIECE_SELECTION:
 
                   active_players.select_to_move_to_cells[active_player] = 0;
-                  active_players.possible_move_counts[active_player] = N_PIECES;
+                  active_players.live_piece_counts[active_player] = N_PIECES; // FIXME this needs to be the number of live pieces I think?
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
@@ -583,6 +590,13 @@ main(void)
                     time_since_move = 0.0f;
                   }
                   break;
+              }
+
+              if (switch_players_control() && time_since_move >= 0.2f) {
+                printf("Switching players\n");
+                active_player = (active_player + 1) % NUM_PLAYERS;
+                time_since_move = 0.0f;
+                continue;
               }
 
               // Handle switching modes here

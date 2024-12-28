@@ -27,6 +27,7 @@ typedef enum PlayerState {
 typedef enum PlayerType {
   WHITE_PLAYER = 0,
   BLACK_PLAYER = 1,
+  NUM_PLAYERS
 } PlayerType;
 
 typedef enum ChessPiece {
@@ -60,8 +61,7 @@ struct Players {
   int *score;
   int *select_to_move_cells; // tracks which cell you / a piece is actually on
   int *select_to_move_to_cells; // tracks which cell you're thinking of moving to
-  int *live_piece_counts;
-  int *possible_move_counts; // how many cells they could select currently
+  int *live_piece_counts; // how many pieces are currently alive
   Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
   PlayerType *player_type;
   PlayerState *player_states;
