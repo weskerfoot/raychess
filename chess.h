@@ -47,7 +47,6 @@ struct ChessPieces {
   Vector2 *chess_positions; // where they are in 2D chess space (centered around 0,0)
   uint8_t *is_dead;
   Color *colors;
-  PlayerType *player_type;
   int *action_points_per_turn;
   int *piece_cell_indices; // foreign key for Cells
 };
@@ -62,7 +61,7 @@ struct ChessTypes {
 
 struct Players {
   int *score;
-  int *select_to_move_cells; // tracks which cell you / a piece is actually on
+  int *select_to_move_pieces; // tracks which cell you / a piece is actually on
   int *select_to_move_to_cells; // tracks which cell you're thinking of moving to
   int *live_piece_counts; // how many pieces are currently alive
   Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
