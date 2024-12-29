@@ -255,10 +255,6 @@ should_skip_cell(int x,
   // If it's occupied but not by us then we can move to it (and take the piece on it in chess)
 
   if (cells.cell_player_states[position] == active_player) {
-    printf("position = %d\n", position);
-    print_board_state(&cells.occupied_states[0]);
-    print_cell_player_states(&cells.cell_player_states[0]);
-    printf("x = %d, y = %d\n", x, y);
     return OWN_PIECE;
   }
 
@@ -270,19 +266,22 @@ should_skip_cell(int x,
 }
 
 static int
-handle_moving_piece(struct ChessPieces active_pieces,
-                    int piece_size,
+handle_moving_piece(int piece_size,
                     int active_cell_to_move_to,
                     int active_piece_to_move,
                     int active_player,
                     int player_sign,
+                    struct ChessPieces active_pieces,
                     struct Players active_players,
                     Vector2 active_chess_pos,
                     struct ChessTypes chess_types,
                     struct Cells cells) {
 
-  int active_piece_type = active_pieces.chess_type[active_piece_to_move];
+  if (active_pieces.is_dead[active_piece_to_move] == 1) {
+    return 0;
+  }
 
+  int active_piece_type = active_pieces.chess_type[active_piece_to_move];
   int active_piece_aps = active_pieces.action_points_per_turn[active_piece_to_move];
 
   assert(active_piece_aps > 0);
@@ -308,7 +307,6 @@ handle_moving_piece(struct ChessPieces active_pieces,
     int collision_state = NO_COLLISION;
 
     int found_other = 0;
-
     int used_aps = 0;
 
     while ((scaled_x >= 0 && scaled_x < N_ROWS) && (scaled_y >= 0 && scaled_y < N_COLS)) {
@@ -398,6 +396,8 @@ calculate_row_move_backward(int active_cell_to_move_to, int player_sign, int mov
 
 static int
 find_next_piece(int active_piece_to_move, int active_player, int direction, struct Cells cells, struct ChessPieces pieces) {
+  // Cycles through all your active pieces
+  // TODO: use a quadtree to do this as well for the mouse
   assert(active_piece_to_move < 16);
 
   if (direction == 1) {
@@ -511,9 +511,6 @@ main(void)
     set_pieces(white_pieces, cells, active_players, piece_size, TOP_SIDE, WHITE_PLAYER);
     set_pieces(black_pieces, cells, active_players, piece_size, BOTTOM_SIDE, BLACK_PLAYER);
 
-    print_board_state(&cells.occupied_states[0]);
-    print_cell_player_states(&cells.cell_player_states[0]);
-
     int active_player = BLACK_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
@@ -542,29 +539,33 @@ main(void)
               Vector2 active_chess_pos = active_pieces.chess_positions[active_piece_to_move];
 
               // Get the position of the currently selected cell and highlight it red
-              Vector3 highlight_pos = active_pieces.grid_positions[active_piece_to_move];
-              highlight_pos.y = 0; // Setting the height of it
-              DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+              if (active_pieces.is_dead[active_piece_to_move] == 0) {
+                Vector3 highlight_pos = active_pieces.grid_positions[active_piece_to_move];
+                highlight_pos.y = 0; // Setting the height of it
+                DrawCube(highlight_pos, 5, 0.1f, 5, RED);
+              }
+              else {
+                // TODO
+                // We have selected a dead piece, reset to the first live piece
+              }
 
               // These are set by the controls to say which cell to move to
               // the names refer to moving in the x or y direction basically
               int move_count = active_players.live_piece_counts[active_player];
 
-              // FIXME, this should modulo arithmetic over the table of active pieces for the player and get the next live one
               int col_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, 1);
               int col_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, 1);
 
               int next_piece_to_move_forward = find_next_piece(active_piece_to_move, active_player, 1, cells, active_pieces);
               int next_piece_to_move_backward = find_next_piece(active_piece_to_move, active_player, -1, cells, active_pieces);
 
-              // FIXME reduce number of parameters
               int move_to_count = 0;
-              move_to_count = handle_moving_piece(active_pieces,
-                                                  piece_size,
+              move_to_count = handle_moving_piece(piece_size,
                                                   active_cell_to_move_to,
                                                   active_piece_to_move,
                                                   active_player,
                                                   player_sign,
+                                                  active_pieces,
                                                   active_players,
                                                   active_chess_pos,
                                                   chess_types,
@@ -592,10 +593,9 @@ main(void)
                 case PIECE_SELECTION:
 
                   active_players.select_to_move_to_cells[active_player] = 0;
-                  active_players.live_piece_counts[active_player] = N_PIECES; // FIXME this needs to be the number of live pieces I think?
+                  active_players.live_piece_counts[active_player] = N_PIECES;
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
-                    // FIXME only select live ones?
                     active_players.select_to_move_pieces[active_player] = next_piece_to_move_backward;
                     time_since_move = 0.0f;
                   }
@@ -639,27 +639,25 @@ main(void)
                   int y_from = convert_coord(chessPosMoveFrom.y, N_ROWS);
 
                   if (cells.occupied_states[y_to + (x_to * N_COLS)] == 1) {
-                    // FIXME, when I kill a piece, I need to reset the state on the player I kill too so they won't be selecting a dead piece
-                    // get the piece associated with the cell currently
                     int kill_cell_piece_index = cells.cell_piece_indices[y_to + (x_to * N_COLS)];
                     int kill_cell_player_id = cells.cell_player_states[y_to + (x_to * N_COLS)];
-                    printf("killing a piece from player %d at index %d\n", kill_cell_player_id, kill_cell_piece_index);
                     // Now get the player associated and set that piece to be dead
                     active_players.pieces[kill_cell_player_id].is_dead[kill_cell_piece_index] = 1;
                     active_players.live_piece_counts[kill_cell_player_id]--; // reduce number of live pieces for enemy
                   }
 
+                  // Moving around all the state tracking stuff
+                  // This tracks whether a cell is occupied or not
                   cells.occupied_states[y_to + (x_to * N_COLS)] = 1;
                   cells.occupied_states[y_from + (x_from * N_COLS)] = 0;
 
+                  // This tracks which piece is currently occupying a cell
                   cells.cell_piece_indices[y_to + (x_to * N_COLS)] = cells.cell_piece_indices[y_from + (x_from * N_COLS)];
                   cells.cell_piece_indices[y_from + (x_from * N_COLS)] = 0;
 
+                  // This tracks which player is currently occupying a cell
                   cells.cell_player_states[y_to + (x_to * N_COLS)] = active_player;
                   cells.cell_player_states[y_from + (x_from * N_COLS)] = -1;
-
-                  print_board_state(&cells.occupied_states[0]);
-                  print_cell_player_states(&cells.cell_player_states[0]);
 
                   // Set the x,y coordinates first of the piece we want to move
                   active_pieces.chess_positions[active_piece_to_move].x = chessPosMoveTo.x;
