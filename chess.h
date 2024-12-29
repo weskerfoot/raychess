@@ -1,4 +1,4 @@
-static Vector3 calculateMove(int, int, int);
+static Vector3 calculate_move(int, int, int);
 
 #define N_ROWS 8
 #define N_COLS 8
@@ -49,6 +49,7 @@ struct ChessPieces {
   Color *colors;
   PlayerType *player_type;
   int *action_points_per_turn;
+  int *piece_cell_indices; // foreign key for Cells
 };
 
 struct ChessTypes {
@@ -73,7 +74,7 @@ struct Players {
 struct Cells {
   uint8_t *occupied_states;
   int *cell_player_states;
-  int *cell_piece_indices; // index to the piece currently occupying a cell
+  int *cell_piece_indices; // foreign key for ChessPieces
 };
 
 // TODO have multiple boards

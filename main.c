@@ -88,6 +88,9 @@ static int blackStartingAPs[N_PIECES] = {
     1, 1, 1, 1, 1, 1, 1, 1     // First row
 };
 
+static int white_piece_cell_indices[N_PIECES];
+static int black_piece_cell_indices[N_PIECES];
+
 // allocate buffers for game data
 static Texture2D pieceTextures[6];
 static Model pieceModels[6];
@@ -149,12 +152,12 @@ convert_coord(int input, int n) {
 }
 
 static void
-printVec2(Vector2 vec) {
+print_vec2(Vector2 vec) {
   printf("x = %f, y = %f\n", vec.x, vec.y);
 }
 
 static void
-printVec3(Vector3 vec) {
+print_vec3(Vector3 vec) {
   printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
 }
 
@@ -219,9 +222,10 @@ set_pieces(struct ChessPieces pieces,
         pieces.grid_positions[cell_id % N_PIECES] = position;
         pieces.chess_positions[cell_id % N_PIECES] = (Vector2){i, j};
         pieces.is_dead[cell_id % N_PIECES] = 0;
+        pieces.piece_cell_indices[cell_id % N_PIECES] = cell_id; // points to the cell that piece is on
         cells.occupied_states[cell_id] = 1;
         cells.cell_player_states[N_CELLS - cell_id - 1] = player_id;
-        cells.cell_piece_indices[N_CELLS - cell_id - 1] = cell_id % N_PIECES;
+        cells.cell_piece_indices[N_CELLS - cell_id - 1] = cell_id % N_PIECES; // ends up pointing back to the piece occupied by that cell
       }
       cell_id++;
     }
@@ -254,7 +258,7 @@ should_skip_cell(int x,
 }
 
 static int
-handle_movements(struct ChessPieces active_pieces,
+handle_moving_piece(struct ChessPieces active_pieces,
                 int piece_size,
                 int active_cell_to_move_to,
                 int active_cell_to_move,
@@ -379,7 +383,31 @@ calculate_row_move_backward(int active_cell_to_move_to, int player_sign, int mov
 }
 
 static int
-find_next_piece() {
+find_next_piece(int active_cell_to_move, int active_player, int direction, struct Cells cells) {
+  // FIXME store N_CELLS dynamically in the table and use that instead
+  // iterate over pieces
+  // find index for cell that piece is currently occupying, if there is one (and check if it's dead first)
+  // use that to index cells table, check if it's occupied and by our player
+  // return that index
+  printf("active_cell_to_move = %d\n", active_cell_to_move);
+  if (direction == 1) {
+    for (int i = active_cell_to_move; i < 16; i++) {
+      printf("i = %d, player_state = %d\n", i, cells.cell_player_states[N_CELLS - i]);
+      if (i > active_cell_to_move && cells.occupied_states[N_CELLS - i] == 1 && cells.cell_player_states[N_CELLS - i] == active_player) {
+        printf("found a cell to move to, i = %d\n", i);
+        return i;
+      }
+    }
+  }
+  else if (direction == -1) {
+    for (int i = active_cell_to_move; i >= 0; i--) {
+      if (i < active_cell_to_move && cells.occupied_states[N_CELLS - i] == 1 && cells.cell_player_states[N_CELLS - i] == active_player) {
+        printf("found a cell to move to, i = %d\n", i);
+        return i;
+      }
+    }
+  }
+  return active_cell_to_move; // If we didn't find anything return the original cell
 }
 
 int
@@ -421,7 +449,8 @@ main(void)
       .is_dead = &whitePiecesDead[0],
       .chess_type = &whiteStartingPieces[0],
       .colors = &whiteColors[0], // later on, a player could have differently colored pieces
-      .action_points_per_turn = &whiteStartingAPs[0]
+      .action_points_per_turn = &whiteStartingAPs[0],
+      .piece_cell_indices = &white_piece_cell_indices[0]
     };
 
     struct ChessPieces black_pieces = {
@@ -430,7 +459,8 @@ main(void)
       .is_dead = &blackPiecesDead[0],
       .chess_type = &blackStartingPieces[0],
       .colors = &blackColors[0], // later on, a player could have differently colored pieces
-      .action_points_per_turn = &blackStartingAPs[0]
+      .action_points_per_turn = &blackStartingAPs[0],
+      .piece_cell_indices = &black_piece_cell_indices[0]
     };
 
     // TODO, load these from data, set the size when it loads the players in a level
@@ -445,7 +475,7 @@ main(void)
 
     // Tracks the state a player is currently in
     PlayerState player_states_buf[2] = {PIECE_SELECTION, PIECE_SELECTION};
-    int select_to_move_cells_buf[2] = {0, 0};
+    int select_to_move_cells_buf[2] = {3, 3};
     int live_piece_counts_buf[2] = {N_PIECES, N_PIECES}; // start out being able to select any piece
     int select_to_move_to_cells_buf[2] = {-1, -1};
     Vector2 select_to_move_to_chess_positions_buf[2] = {{0},{0}};
@@ -475,7 +505,7 @@ main(void)
     print_board_state(&cells.occupied_states[0]);
     print_cell_player_states(&cells.cell_player_states[0]);
 
-    int active_player = WHITE_PLAYER;
+    int active_player = BLACK_PLAYER;
 
     // This is specific to chess moves because they are inverted for either side
     // In some other cell based game, this could be based on a direction variable instead
@@ -515,23 +545,21 @@ main(void)
               int col_move_to_forward = calculate_row_move_forward(active_cell_to_move_to, player_sign, move_count, 1);
               int col_move_to_back = calculate_row_move_backward(active_cell_to_move_to, player_sign, move_count, 1);
 
-              // These are set by the controls to say which cell to select
-
-              int col_move_forward = calculate_row_move_forward(active_cell_to_move, player_sign, move_count, 1);
-              int col_move_back = calculate_row_move_backward(active_cell_to_move, player_sign, move_count, 1);
+              int next_piece_to_move_forward = find_next_piece(active_cell_to_move, active_player, 1, cells);
+              int next_piece_to_move_backward = find_next_piece(active_cell_to_move, active_player, -1, cells);
 
               // FIXME reduce number of parameters
               int move_to_count = 0;
-              move_to_count = handle_movements(active_pieces,
-                                              piece_size,
-                                              active_cell_to_move_to,
-                                              active_cell_to_move,
-                                              active_player,
-                                              player_sign,
-                                              active_players,
-                                              active_chess_pos,
-                                              chess_types,
-                                              cells);
+              move_to_count = handle_moving_piece(active_pieces,
+                                                  piece_size,
+                                                  active_cell_to_move_to,
+                                                  active_cell_to_move,
+                                                  active_player,
+                                                  player_sign,
+                                                  active_players,
+                                                  active_chess_pos,
+                                                  chess_types,
+                                                  cells);
 
               // Handle cell movement for different states here
               switch (active_player_state) {
@@ -559,12 +587,12 @@ main(void)
 
                   if (left_x_left_control() && time_since_move >= 0.2f) {
                     // FIXME only select live ones?
-                    active_players.select_to_move_cells[active_player] = col_move_back;
+                    active_players.select_to_move_cells[active_player] = next_piece_to_move_backward;
                     time_since_move = 0.0f;
                   }
 
                   if (left_x_right_control() && time_since_move >= 0.2f) {
-                    active_players.select_to_move_cells[active_player] = col_move_forward;
+                    active_players.select_to_move_cells[active_player] = next_piece_to_move_forward;
                     time_since_move = 0.0f;
                   }
 
