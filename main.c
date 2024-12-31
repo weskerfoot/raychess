@@ -239,7 +239,7 @@ set_pieces(struct ChessPieces pieces,
       cell_id++;
     }
   }
-  //assert (cell_id < 65);
+  assert (cell_id < ((N_ROWS*N_COLS) + 1));
   return pieces;
 }
 
