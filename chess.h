@@ -1,5 +1,9 @@
 static Vector3 calculate_move(int, int, int);
 
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 #define N_ROWS 10
 #define N_COLS 10
 #define N_CELLS (N_ROWS*N_COLS)

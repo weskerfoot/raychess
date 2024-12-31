@@ -215,7 +215,6 @@ set_pieces(struct ChessPieces pieces,
     start = N_CELLS - (N_PIECES);
     end = N_CELLS;
   }
-
   int x_half = (N_ROWS / 2.0) - 1;
   int y_half = (N_COLS / 2.0);
 
@@ -239,7 +238,7 @@ set_pieces(struct ChessPieces pieces,
       cell_id++;
     }
   }
-  assert (cell_id < ((N_ROWS*N_COLS) + 1));
+  assert (cell_id < (N_ROWS*N_COLS) + 1);
   return pieces;
 }
 
@@ -636,10 +635,10 @@ main(void)
                   Vector2 chessPosMoveFrom = active_pieces.chess_positions[active_piece_to_move];
 
                   int x_to = convert_coord(chessPosMoveTo.x, N_ROWS);
-                  int y_to = convert_coord(chessPosMoveTo.y, N_ROWS);
+                  int y_to = convert_coord(chessPosMoveTo.y, N_COLS);
 
                   int x_from = convert_coord(chessPosMoveFrom.x, N_ROWS);
-                  int y_from = convert_coord(chessPosMoveFrom.y, N_ROWS);
+                  int y_from = convert_coord(chessPosMoveFrom.y, N_COLS);
 
                   if (cells.occupied_states[y_to + (x_to * N_COLS)] == 1) {
                     int kill_cell_piece_index = cells.cell_piece_indices[y_to + (x_to * N_COLS)];
@@ -698,7 +697,7 @@ main(void)
                 }
               }
 
-              DrawGrid(N_ROWS, 5.0f);
+              DrawGrid(MAX(N_ROWS, N_COLS), 5.0f);
           rlTPCameraEndMode3D();
 
           DrawRectangle( 10, 6, 50, 50, Fade(SKYBLUE, 0.5f));
