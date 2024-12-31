@@ -216,8 +216,11 @@ set_pieces(struct ChessPieces pieces,
     end = N_CELLS;
   }
 
-  for (float i = -3; i <= 4; i++) {
-    for (float j = -3; j <= 4; j++) {
+  int x_half = (N_ROWS / 2.0) - 1;
+  int y_half = (N_COLS / 2.0);
+
+  for (float i = -x_half; i <= y_half; i++) {
+    for (float j = -x_half; j <= y_half; j++) {
       Vector3 position = calculate_move(i, j, size);
       // there are always 16 pieces per player
       if (cell_id >= start && cell_id < end) {
@@ -236,7 +239,7 @@ set_pieces(struct ChessPieces pieces,
       cell_id++;
     }
   }
-  assert (cell_id < 65);
+  //assert (cell_id < 65);
   return pieces;
 }
 

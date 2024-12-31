@@ -1,9 +1,9 @@
 static Vector3 calculate_move(int, int, int);
 
-#define N_ROWS 8
-#define N_COLS 8
+#define N_ROWS 10
+#define N_COLS 10
 #define N_CELLS (N_ROWS*N_COLS)
-#define N_PIECES (N_ROWS*2)
+#define N_PIECES 16
 
 enum SIDES {
   TOP_SIDE = 0,
