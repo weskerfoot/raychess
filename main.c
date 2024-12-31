@@ -58,32 +58,35 @@ switch_players_control() {
   return gamepad_control || key_control;
 }
 
-static ChessPiece whiteStartingPieces[N_PIECES] = {
+// Quad-Tree stuff
+
+// Piece stuff
+static ChessPiece white_starting_pieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK // Second row
 };
 
-static ChessPiece blackStartingPieces[N_PIECES] = {
+static ChessPiece black_starting_pieces[N_PIECES] = {
     ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK, // Second row
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN           // First row
 };
 
-static Color blackColors[N_PIECES] = {
+static Color black_colors[N_PIECES] = {
   BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK,
   BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK
 };
 
-static Color whiteColors[N_PIECES] = {
+static Color white_colors[N_PIECES] = {
   WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE,
   WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
 };
 
-static int whiteStartingAPs[N_PIECES] = {
+static int white_starting_aps[N_PIECES] = {
     1, 1, 1, 1, 1, 1, 1, 1,     // First row
     N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS, // Second row
 };
 
-static int blackStartingAPs[N_PIECES] = {
+static int black_starting_aps[N_PIECES] = {
     N_COLS, 1, N_COLS, N_COLS, 1, N_COLS, 1, N_COLS, // Second row
     1, 1, 1, 1, 1, 1, 1, 1     // First row
 };
@@ -91,10 +94,9 @@ static int blackStartingAPs[N_PIECES] = {
 static int white_piece_cell_indices[N_PIECES];
 static int black_piece_cell_indices[N_PIECES];
 
-// allocate buffers for game data
-static Texture2D pieceTextures[6];
-static Model pieceModels[6];
-static float pieceScalingFactors[6] = {20.0f, 20.0f, 20.0f, 20.0f, 20.0f, 20.0f};
+static Texture2D piece_textures[6];
+static Model piece_models[6];
+static float piece_scaling_factors[6] = {20.0f, 20.0f, 20.0f, 20.0f, 20.0f, 20.0f};
 
 static int offset_sizes[6] = {
   (sizeof pawnOffsets)/sizeof(pawnOffsets[0]),
@@ -114,31 +116,26 @@ static Vector2 *offsets[6] = {
   &kingOffsets[0]
 };
 
-static Vector3 whiteGridPositions[N_PIECES];
-static Vector3 blackGridPositions[N_PIECES];
-static Vector2 whiteChessPositions[N_PIECES];
-static Vector2 blackChessPositions[N_PIECES];
-static uint8_t whitePiecesDead[N_PIECES];
-static uint8_t blackPiecesDead[N_PIECES];
+static Vector3 white_grid_positions[N_PIECES];
+static Vector3 black_grid_positions[N_PIECES];
+static Vector2 white_chess_positions[N_PIECES];
+static Vector2 black_chess_positions[N_PIECES];
+static uint8_t white_pieces_dead[N_PIECES];
+static uint8_t black_pieces_dead[N_PIECES];
 
-// Stores a mapping of piece positions to their occupied state
-// y + (x * N_COLS) gives you the position in the array
-// maybe if the grids get really large it could just do collision detection though?
-// that would require computing hit boxes each time you move though which would be slower I think
-// not using a multi-dimensional array, might be resizable later
-// no, just use multiple cells per entity/object
+// Cell stuff
 static uint8_t occupied_states[N_CELLS];
 static int cell_player_states[N_CELLS];
 static int cell_piece_indices[N_CELLS];
 
 static void
 load_assets() {
-    pieceModels[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
-    pieceModels[KNIGHT] = LoadModel("resources/models/chess_pieces_models/knight.glb");
-    pieceModels[BISHOP] = LoadModel("resources/models/chess_pieces_models/bishop.glb");
-    pieceModels[ROOK] = LoadModel("resources/models/chess_pieces_models/rook.glb");
-    pieceModels[QUEEN] = LoadModel("resources/models/chess_pieces_models/queen.glb");
-    pieceModels[KING] = LoadModel("resources/models/chess_pieces_models/king.glb");
+    piece_models[PAWN] = LoadModel("resources/models/chess_pieces_models/pawn.glb");
+    piece_models[KNIGHT] = LoadModel("resources/models/chess_pieces_models/knight.glb");
+    piece_models[BISHOP] = LoadModel("resources/models/chess_pieces_models/bishop.glb");
+    piece_models[ROOK] = LoadModel("resources/models/chess_pieces_models/rook.glb");
+    piece_models[QUEEN] = LoadModel("resources/models/chess_pieces_models/queen.glb");
+    piece_models[KING] = LoadModel("resources/models/chess_pieces_models/king.glb");
     return;
 }
 
@@ -440,13 +437,12 @@ main(void)
     load_assets();
 
     SetTargetFPS(60);
-    float piece_size = 5.0f;
 
     // Piece type stuff
     struct ChessTypes chess_types = {
-      .textures = &pieceTextures[0],
-      .models = &pieceModels[0],
-      .scaling_factors = &pieceScalingFactors[0],
+      .textures = &piece_textures[0],
+      .models = &piece_models[0],
+      .scaling_factors = &piece_scaling_factors[0],
       .offset_sizes = &offset_sizes[0],
       .offsets = &offsets[0],
     };
@@ -454,23 +450,23 @@ main(void)
     memset(&white_piece_cell_indices[0], -1, (sizeof white_piece_cell_indices));
     // Gameplay piece stuff
     struct ChessPieces white_pieces = {
-      .grid_positions = &whiteGridPositions[0],
-      .chess_positions = &whiteChessPositions[0],
-      .is_dead = &whitePiecesDead[0],
-      .chess_type = &whiteStartingPieces[0],
-      .colors = &whiteColors[0], // later on, a player could have differently colored pieces
-      .action_points_per_turn = &whiteStartingAPs[0],
+      .grid_positions = &white_grid_positions[0],
+      .chess_positions = &white_chess_positions[0],
+      .is_dead = &white_pieces_dead[0],
+      .chess_type = &white_starting_pieces[0],
+      .colors = &white_colors[0], // later on, a player could have differently colored pieces
+      .action_points_per_turn = &white_starting_aps[0],
       .piece_cell_indices = &white_piece_cell_indices[0]
     };
 
     memset(&black_piece_cell_indices[0], -1, (sizeof black_piece_cell_indices));
     struct ChessPieces black_pieces = {
-      .grid_positions = &blackGridPositions[0],
-      .chess_positions = &blackChessPositions[0],
-      .is_dead = &blackPiecesDead[0],
-      .chess_type = &blackStartingPieces[0],
-      .colors = &blackColors[0], // later on, a player could have differently colored pieces
-      .action_points_per_turn = &blackStartingAPs[0],
+      .grid_positions = &black_grid_positions[0],
+      .chess_positions = &black_chess_positions[0],
+      .is_dead = &black_pieces_dead[0],
+      .chess_type = &black_starting_pieces[0],
+      .colors = &black_colors[0], // later on, a player could have differently colored pieces
+      .action_points_per_turn = &black_starting_aps[0],
       .piece_cell_indices = &black_piece_cell_indices[0]
     };
 
@@ -510,8 +506,8 @@ main(void)
       .cell_piece_indices = &cell_piece_indices[0]
     };
 
-    set_pieces(white_pieces, cells, active_players, piece_size, TOP_SIDE, WHITE_PLAYER);
-    set_pieces(black_pieces, cells, active_players, piece_size, BOTTOM_SIDE, BLACK_PLAYER);
+    set_pieces(white_pieces, cells, active_players, PIECE_SIZE, TOP_SIDE, WHITE_PLAYER);
+    set_pieces(black_pieces, cells, active_players, PIECE_SIZE, BOTTOM_SIDE, BLACK_PLAYER);
 
     int active_player = BLACK_PLAYER;
 
@@ -533,11 +529,10 @@ main(void)
           rlTPCameraBeginMode3D(&orbitCam);
 
               Vector2 mousePos = GetMousePosition();
-              float targetWorldZ = 0.0f; // Replace with desired Z level in the world
+              float targetWorldZ = 0.0f;
               Vector3 worldPos = rlTPCameraGetScreenToWorld(&orbitCam, mousePos, targetWorldZ);
 
-              printf("mouse_pos = "); print_vec2(mousePos);
-              printf("world pos = "); print_vec3(worldPos);
+              print_vec3(worldPos);
 
               struct ChessPieces active_pieces = active_players.pieces[active_player];
 
@@ -569,7 +564,7 @@ main(void)
               int next_piece_to_move_backward = find_next_piece(active_piece_to_move, active_player, -1, cells, active_pieces);
 
               int move_to_count = 0;
-              move_to_count = handle_moving_piece(piece_size,
+              move_to_count = handle_moving_piece(PIECE_SIZE,
                                                   active_cell_to_move_to,
                                                   active_piece_to_move,
                                                   active_player,
@@ -673,7 +668,7 @@ main(void)
                   active_pieces.chess_positions[active_piece_to_move].y = chessPosMoveTo.y;
 
                   // Then update with the calculated grid position
-                  active_pieces.grid_positions[active_piece_to_move] = calculate_move(chessPosMoveTo.x, chessPosMoveTo.y, piece_size);
+                  active_pieces.grid_positions[active_piece_to_move] = calculate_move(chessPosMoveTo.x, chessPosMoveTo.y, PIECE_SIZE);
 
                   // and reset the mode back to piece selection
                   active_player_state = active_players.player_states[active_player] = PIECE_SELECTION;

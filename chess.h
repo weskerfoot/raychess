@@ -1,13 +1,24 @@
 static Vector3 calculate_move(int, int, int);
 
-
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+#define PIECE_SIZE 5.0f
 #define N_ROWS 10
 #define N_COLS 10
 #define N_CELLS (N_ROWS*N_COLS)
 #define N_PIECES 16
+#define GRID_SIZE (N_CELLS  * 5.0f) // TODO would be stored in a table later, and the tile size 5.0 would be dynamic
+#define QTREE_SIZE (next_pow2(N_CELLS)) // Number of nodes in the quad-tree, calculated on level-loading later
+
+int
+next_pow2(int n) {
+  int k = 1;
+  while (k < n) {
+    k *= 2;
+  }
+  return k;
+}
 
 enum SIDES {
   TOP_SIDE = 0,
@@ -43,7 +54,29 @@ typedef enum ChessPiece {
     KING = 5
 } ChessPiece;
 
-// FIXME store the size of each table instead of hardcoding it, it will make it easier to generate this stuff later
+// There will be one object mapped to one quad
+// When setting pieces/objects on the grid we do the quadtree insertion
+//  which involves drilling down to the largest quad that can contain only that object
+// When moving a piece, we set the piece index for that quad to -1 to indicate it's now empty
+// then we do the quadtree insertion in the new place
+//
+// if there is a conflict we would have to make a smaller quad, or we could not move there
+// to start with we will assume we can't move there unless we're killing / destroying the object in the new spot
+//
+// quadtree insertion algorithm:
+//  keep going until you find the smallest existing quad that can fit the object
+//    check if the bounding box of your object is fully contained by the bounding box of the quad, if the object would be split into two quads we have to stop
+//    if the quad contains another object then we either split or if we've reached the limit of divisions, that should not happen (would be an error or we destroyed/killed the existing object)
+//
+//
+//    the initial insertion should be done in set_pieces
+//    later it would be baked into the level data (or not? the level data could contain the size of the tree maybe)
+struct Quads {
+  Vector2 *quad_boxes;
+  int *piece_indices; // refers to pieces inside a box
+  int *left_quads;
+  int *right_quads; // these are indices pointing to the left and right sub-quads of a quad
+};
 
 struct ChessPieces {
   ChessPiece *chess_type;
@@ -53,6 +86,7 @@ struct ChessPieces {
   Color *colors;
   int *action_points_per_turn;
   int *piece_cell_indices; // foreign key for Cells
+  int *quad_indices; // refers to the node in the quadtree this piece is located
 };
 
 struct ChessTypes {
