@@ -35,6 +35,29 @@
 #include <stdlib.h>
 #include <math.h>
 
+
+Vector3
+rlTPCameraGetScreenToWorld(rlTPCamera* camera, Vector2 screenPosition, float worldZ)
+{
+    if (camera == NULL)
+        return (Vector3){0};
+
+    // Generate a ray from the screen position
+    Ray ray = GetMouseRay(screenPosition, camera->ViewCamera);
+
+    // Calculate the intersection of the ray with a plane at the specified world Z
+    float t = (worldZ - ray.position.z) / ray.direction.z;
+
+    // Compute the world-space coordinates
+    Vector3 worldPosition = {
+        ray.position.x + t * ray.direction.x,
+        ray.position.y + t * ray.direction.y,
+        worldZ
+    };
+
+    return worldPosition;
+}
+
 static void ResizeTPOrbitCameraView(rlTPCamera* camera)
 {
     if (camera == NULL)

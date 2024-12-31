@@ -532,6 +532,13 @@ main(void)
 
           rlTPCameraBeginMode3D(&orbitCam);
 
+              Vector2 mousePos = GetMousePosition();
+              float targetWorldZ = 0.0f; // Replace with desired Z level in the world
+              Vector3 worldPos = rlTPCameraGetScreenToWorld(&orbitCam, mousePos, targetWorldZ);
+
+              printf("mouse_pos = "); print_vec2(mousePos);
+              printf("world pos = "); print_vec3(worldPos);
+
               struct ChessPieces active_pieces = active_players.pieces[active_player];
 
               // Get the IDs of the cell to move and the possible cell to move to

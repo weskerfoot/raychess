@@ -132,4 +132,6 @@ RLAPI void rlTPCameraBeginMode3D(rlTPCamera* camera);
 // end drawing with the camera
 RLAPI void rlTPCameraEndMode3D();
 
+RLAPI Vector3 rlTPCameraGetScreenToWorld(rlTPCamera*, Vector2, float);
+
 #endif //TP_CAMERA_H
