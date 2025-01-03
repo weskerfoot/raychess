@@ -58,8 +58,6 @@ switch_players_control() {
   return gamepad_control || key_control;
 }
 
-// Quad-Tree stuff
-
 // Piece stuff
 static ChessPiece white_starting_pieces[N_PIECES] = {
     PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,           // First row
@@ -148,37 +146,92 @@ convert_coord(int input, int n) {
   return half - input;
 }
 
-static void
-print_vec2(Vector2 vec) {
-  printf("x = %f, y = %f\n", vec.x, vec.y);
-}
+void
+initialize_qtree(struct Quads qtree, struct QItem *queue, int q_size) {
+  qtree.size = q_size;
 
-static void
-print_vec3(Vector3 vec) {
-  printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
-}
+  printf("qtree.size = %d\n", qtree.size);
 
-static void
-print_cell_player_states(int *states) {
-  printf("cell states = ");
-  for (int i = 0; i < N_CELLS; i++) {
-    printf("%d", states[i]);
+  Vector2 current_quad_size;
+  current_quad_size.x = N_ROWS * PIECE_SIZE;
+  current_quad_size.y = N_COLS * PIECE_SIZE;
+
+  Vector3 current_quad_position;
+  current_quad_position.x = 0.0f;
+  current_quad_position.y = 0.0f;
+  current_quad_position.z = 0.0f;
+
+  struct QItem root = {.position = current_quad_position, .dimensions=current_quad_size};
+
+  q_push(root, queue, q_size);
+
+  while (q_count > 0) { // FIXME level calculation
+    int next_q_count = q_count;
+    printf("q_count = %d\n", q_count);
+    if (next_q_count >= (q_size/16.0)) {
+      break;
+    }
+    for (int i = 0; i < next_q_count; i++) {
+      struct QItem current_node = queue[q_get(q_size)];
+      struct Vector2 root_dimensions = current_node.dimensions;
+      struct Vector3 root_position = current_node.position;
+
+      Vector3 bottom_right_pos = {
+          .x = root_position.x + (root_dimensions.x / 4.0),
+          .y = 0.0f,
+          .z = root_position.z + (root_dimensions.y / 4.0)
+      };
+      Vector3 bottom_left_pos = {
+          .x = root_position.x - (root_dimensions.x / 4.0),
+          .y = 0.0f,
+          .z = root_position.z + (root_dimensions.y / 4.0)
+      };
+      Vector3 top_left_pos = {
+          .x = root_position.x - (root_dimensions.x / 4.0),
+          .y = 0.0f,
+          .z = root_position.z - (root_dimensions.y / 4.0)
+      };
+      Vector3 top_right_pos = {
+          .x = root_position.x + (root_dimensions.x / 4.0),
+          .y = 0.0f,
+          .z = root_position.z - (root_dimensions.y / 4.0)
+      };
+
+      Vector2 bottom_right_size = {.x=root_dimensions.x / 2.0, .y=root_dimensions.y / 2.0};
+      Vector2 bottom_left_size = {.x=root_dimensions.x / 2.0, .y=root_dimensions.y / 2.0};
+      Vector2 top_left_size = {.x=root_dimensions.x / 2.0, .y=root_dimensions.y / 2.0};
+      Vector2 top_right_size = {.x=root_dimensions.x / 2.0, .y=root_dimensions.y / 2.0};
+
+      if (top_left_size.x <= PIECE_SIZE) {
+        DrawCube(top_left_pos, top_left_size.x, 0.1f, top_left_size.y, next_color(i));
+        DrawCube(top_right_pos, top_right_size.x, 0.1f, top_right_size.y, next_color(i+10));
+        DrawCube(bottom_left_pos, bottom_left_size.x, 0.1f, bottom_left_size.y, next_color(i+20));
+        DrawCube(bottom_right_pos, bottom_right_size.x, 0.1f, bottom_right_size.y, next_color(i+30));
+      }
+
+      assert(q_push((struct QItem){.position=top_left_pos, .dimensions=top_left_size}, queue, q_size) != -1);
+      assert(q_push((struct QItem){.position=top_right_pos, .dimensions=top_right_size}, queue, q_size) != -1);
+      assert(q_push((struct QItem){.position=bottom_right_pos, .dimensions=bottom_right_size}, queue, q_size) != -1);
+      assert(q_push((struct QItem){.position=bottom_left_pos, .dimensions=bottom_left_size}, queue, q_size) != -1);
+
+      printf("===============\n");
+      printf("root_pos = "); print_vec3(root_position);
+      printf("bottom_right_pos = "); print_vec3(bottom_right_pos);
+      printf("top_right_pos = "); print_vec3(top_right_pos);
+      printf("bottom_left_pos = "); print_vec3(bottom_left_pos);
+      printf("top_left_pos = "); print_vec3(top_left_pos);
+      printf("===============\n");
+    }
   }
-  printf("\n");
-}
 
+  q_count = 0;
+  q_tail = 0;
+  q_head = 0;
 
-static void
-print_board_state(uint8_t *board) {
-  printf("board states = ");
-  for (int i = 0; i < N_CELLS; i++) {
-    printf("%d", board[i]);
-  }
-  printf("\n");
 }
 
 static Vector3
-calculate_move(int col, int row, int size) {
+calculate_position(int col, int row, int size) {
   // Given a column and row, and a tile size
   // calculate a board position
   assert (size != 0);
@@ -217,7 +270,7 @@ set_pieces(struct ChessPieces pieces,
 
   for (float i = -x_half; i <= y_half; i++) {
     for (float j = -x_half; j <= y_half; j++) {
-      Vector3 position = calculate_move(i, j, size);
+      Vector3 position = calculate_position(i, j, size);
       // there are always 16 pieces per player
       if (cell_id >= start && cell_id < end) {
         pieces.grid_positions[cell_id % N_PIECES] = position;
@@ -319,7 +372,7 @@ handle_moving_piece(int piece_size,
 
       int converted_x = convert_coord(scaled_x, N_ROWS);
       int converted_y = convert_coord(scaled_y, N_COLS);
-      Vector3 scaled_pos = calculate_move(converted_x, converted_y, piece_size);
+      Vector3 scaled_pos = calculate_position(converted_x, converted_y, piece_size);
 
       scaled_x = scaled_x + offset.x;
       scaled_y = scaled_y + offset.y;
@@ -419,6 +472,19 @@ find_next_piece(int active_piece_to_move, int active_player, int direction, stru
 int
 main(void)
 {
+
+    int q_size = next_pow2(next_pow2(N_CELLS*4+1) + 1); // add 1 for the root node
+    // Quad-Tree stuff
+    Vector2 quad_sizes_buf[q_size];
+    Vector3 quad_positions_buf[q_size];
+    int quad_piece_indices_buf[q_size];
+    int top_left_quad_children[q_size];
+    int top_right_quad_children[q_size];
+    int bottom_left_quad_children[q_size];
+    int bottom_right_quad_children[q_size];
+
+    struct QItem queue[q_size];
+
     const int screenWidth = 800;
     const int screenHeight = 450;
 
@@ -518,6 +584,16 @@ main(void)
 
     float time_since_move = 0;
 
+    struct Quads qtree = {
+      .quad_sizes = &quad_sizes_buf[0],
+      .quad_positions = &quad_positions_buf[0],
+      .piece_indices = &quad_piece_indices_buf[0],
+      .top_left = &top_left_quad_children[0],
+      .top_right = &top_right_quad_children[0],
+      .bottom_left = &bottom_left_quad_children[0],
+      .bottom_right = &bottom_right_quad_children[0]
+    };
+
     while (!WindowShouldClose()) {
       player_sign = active_player == BLACK_PLAYER ? -1 : 1; // FIXME doesn't work for more than 2 players
       rlTPCameraUpdate(&orbitCam);
@@ -532,7 +608,7 @@ main(void)
               float targetWorldZ = 0.0f;
               Vector3 worldPos = rlTPCameraGetScreenToWorld(&orbitCam, mousePos, targetWorldZ);
 
-              print_vec3(worldPos);
+              //print_vec3(worldPos);
 
               struct ChessPieces active_pieces = active_players.pieces[active_player];
 
@@ -668,7 +744,7 @@ main(void)
                   active_pieces.chess_positions[active_piece_to_move].y = chessPosMoveTo.y;
 
                   // Then update with the calculated grid position
-                  active_pieces.grid_positions[active_piece_to_move] = calculate_move(chessPosMoveTo.x, chessPosMoveTo.y, PIECE_SIZE);
+                  active_pieces.grid_positions[active_piece_to_move] = calculate_position(chessPosMoveTo.x, chessPosMoveTo.y, PIECE_SIZE);
 
                   // and reset the mode back to piece selection
                   active_player_state = active_players.player_states[active_player] = PIECE_SELECTION;
@@ -700,6 +776,7 @@ main(void)
               }
 
               DrawGrid(MAX(N_ROWS, N_COLS), 5.0f);
+              initialize_qtree(qtree, queue, q_size);
           rlTPCameraEndMode3D();
 
           DrawRectangle( 10, 6, 50, 50, Fade(SKYBLUE, 0.5f));

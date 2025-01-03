@@ -1,15 +1,15 @@
-static Vector3 calculate_move(int, int, int);
+static Vector3 calculate_position(int, int, int);
+static int clamp(int, int, int);
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 #define PIECE_SIZE 5.0f
-#define N_ROWS 10
-#define N_COLS 10
+#define N_ROWS 32
+#define N_COLS 32
 #define N_CELLS (N_ROWS*N_COLS)
 #define N_PIECES 16
 #define GRID_SIZE (N_CELLS  * 5.0f) // TODO would be stored in a table later, and the tile size 5.0 would be dynamic
-#define QTREE_SIZE (next_pow2(N_CELLS)) // Number of nodes in the quad-tree, calculated on level-loading later
 
 int
 next_pow2(int n) {
@@ -71,11 +71,18 @@ typedef enum ChessPiece {
 //
 //    the initial insertion should be done in set_pieces
 //    later it would be baked into the level data (or not? the level data could contain the size of the tree maybe)
+
+static Vector2 quad_offsets[] = {{4, -4}, {4, 4}, {-4, 4}, {-4, -4}};
+
 struct Quads {
-  Vector2 *quad_boxes;
+  int size;
+  Vector3 *quad_positions;
+  Vector2 *quad_sizes;
   int *piece_indices; // refers to pieces inside a box
-  int *left_quads;
-  int *right_quads; // these are indices pointing to the left and right sub-quads of a quad
+  int *top_left;
+  int *top_right;
+  int *bottom_left;
+  int *bottom_right;
 };
 
 struct ChessPieces {
@@ -158,3 +165,104 @@ Vector2 kingOffsets[] = {
     {-1, 1}, {1, 1},
     {0, 1}
 };
+
+// Debugging stuff
+
+// Convert HSV to RGB
+Color HSVtoRGB(float h, float s, float v) {
+    float c = v * s;
+    float x = c * (1.0f - fabsf(fmodf(h / 60.0f, 2.0f) - 1.0f));
+    float m = v - c;
+
+    float r, g, b;
+    if (h >= 0 && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (h >= 60 && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (h >= 120 && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (h >= 180 && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (h >= 240 && h < 300) {
+        r = x; g = 0; b = c;
+    } else {
+        r = c; g = 0; b = x;
+    }
+
+    Color color = {
+        (unsigned char)((r + m) * 255),
+        (unsigned char)((g + m) * 255),
+        (unsigned char)((b + m) * 255),
+        255 // Fully opaque
+    };
+
+    return color;
+}
+
+// Function to map integer `i` to a distinct color
+Color next_color(int i) {
+    const float golden_ratio_conjugate = 0.618033988749895f; // Golden ratio conjugate
+    float hue = fmodf((i * golden_ratio_conjugate) * 360.0f, 360.0f); // Spread hues evenly
+    return HSVtoRGB(hue, 1.0f, 1.0f); // Full saturation and brightness
+}
+
+static void
+print_vec2(Vector2 vec) {
+  printf("x = %f, y = %f\n", vec.x, vec.y);
+}
+
+static void
+print_vec3(Vector3 vec) {
+  printf("x = %f, y = %f, z = %f\n", vec.x, vec.y, vec.z);
+}
+
+static void
+print_cell_player_states(int *states) {
+  printf("cell states = ");
+  for (int i = 0; i < N_CELLS; i++) {
+    printf("%d", states[i]);
+  }
+  printf("\n");
+}
+
+
+static void
+print_board_state(uint8_t *board) {
+  printf("board states = ");
+  for (int i = 0; i < N_CELLS; i++) {
+    printf("%d", board[i]);
+  }
+  printf("\n");
+}
+
+struct QItem {
+  Vector3 position;
+  Vector2 dimensions;
+};
+
+static int q_head = 0; // Index of the first element in the queue
+static int q_tail = 0; // Index of the next insertion point
+static int q_count = 0; // Number of elements in the queue
+
+static int
+q_push(struct QItem vec, struct QItem *queue, int q_size) {
+    if (q_count == q_size) {
+        return -1; // Queue is full
+    }
+    int index = q_tail;
+    queue[q_tail] = vec;
+    q_tail = (q_tail + 1) % q_size;
+    q_count++;
+    return index;
+}
+
+static int
+q_get(int q_size) {
+    if (q_count == 0) {
+        return -1; // Queue is empty
+    }
+    int index = q_head;
+    q_head = (q_head + 1) % q_size;
+    q_count--;
+    return index;
+}
