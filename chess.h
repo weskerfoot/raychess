@@ -5,8 +5,8 @@ static int clamp(int, int, int);
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 #define PIECE_SIZE 5.0f
-#define N_ROWS 32
-#define N_COLS 32
+#define N_ROWS 8
+#define N_COLS 8
 #define N_CELLS (N_ROWS*N_COLS)
 #define N_PIECES 16
 #define GRID_SIZE (N_CELLS  * 5.0f) // TODO would be stored in a table later, and the tile size 5.0 would be dynamic
@@ -72,8 +72,6 @@ typedef enum ChessPiece {
 //    the initial insertion should be done in set_pieces
 //    later it would be baked into the level data (or not? the level data could contain the size of the tree maybe)
 
-static Vector2 quad_offsets[] = {{4, -4}, {4, 4}, {-4, 4}, {-4, -4}};
-
 struct Quads {
   int size;
   Vector3 *quad_positions;
@@ -112,7 +110,7 @@ struct Players {
   Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
   PlayerType *player_type;
   PlayerState *player_states;
-  struct ChessPieces *pieces; // FIXME shouldn't be pointers, should be indices
+  int *piece_indices; // FIXME shouldn't be pointers, should be indices
 };
 
 struct Cells {
@@ -245,7 +243,9 @@ static int q_tail = 0; // Index of the next insertion point
 static int q_count = 0; // Number of elements in the queue
 
 static int
-q_push(struct QItem vec, struct QItem *queue, int q_size) {
+q_push(struct QItem vec,
+       struct QItem *queue,
+       int q_size) {
     if (q_count == q_size) {
         return -1; // Queue is full
     }
