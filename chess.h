@@ -110,7 +110,7 @@ struct Players {
   Vector2 *select_to_move_to_chess_positions; // tracks the chess position of the cell you're thinking of moving to
   PlayerType *player_type;
   PlayerState *player_states;
-  int *piece_indices; // FIXME shouldn't be pointers, should be indices
+  int *piece_indices;
 };
 
 struct Cells {
